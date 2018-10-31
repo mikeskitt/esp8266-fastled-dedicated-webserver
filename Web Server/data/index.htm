@@ -36,11 +36,8 @@
       </div>
       <div class="collapse navbar-collapse" id="navbar-collapse-1">
         <ul class="nav navbar-nav">
-          <li class="active"><a href="/">ESP8266 + FastLED <span class="sr-only">(current)</span></a></li>
-          <li><a href="/simple.htm" target="_blank" title="Simple Mode">Simple</a></li>
-          <li><a href="/edit.htm" target="_blank" title="Edit Files">Files</a></li>
-          <li><a href="/update" target="_blank" title="Update Firmware">Firmware</a></li>
-          <li><a href="/wifi.htm" target="_blank" title="Wi-Fi Settings">Wi-Fi</a></li>
+          <li class="active"><a href="/">ESP8266 + FastLED <span class="sr-only">(current)</span></a>
+          </li>
         </ul>
         <ul class="nav navbar-nav navbar-right">
           <li>
@@ -54,10 +51,19 @@
   </nav>
 
   <div id="container" class="container">
+    <p><b>Room Selection</b></p>
+    <select class="form-control" id="input-espselect">
+      <option value="null">Select supplier...</option>
+      <option value="0"> Living Room</option>
+      <option value="1"> Basement</option>
+      <option value="1"> Pong Table</option>
+    </select>
+    <hr>
 
     <form class="form-horizontal" id="form">
     </form>
 
+            
   </div>
 
   <div id="templates" style="display: none">
@@ -204,11 +210,6 @@
       </div>
       <div class="collapse navbar-collapse" id="navbar-collapse-2">
         <ul class="nav navbar-nav">
-          <li>
-            <a href="/" aria-label="Refresh" title="Refresh">
-              <span class="glyphicon glyphicon-refresh" id="btnRefresh"></span>
-            </a>
-          </li>
           <li><p class="navbar-text" id="status">Loading, please wait...</p></li>
         </ul>
       </div>
