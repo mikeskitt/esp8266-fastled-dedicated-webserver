@@ -1,10 +1,7 @@
-// used when hosting the site on the ESP8266
-var address = location.hostname;
-var urlBase = "";
-
 // used when hosting the site somewhere other than the ESP8266 (handy for testing without waiting forever to upload to SPIFFS)
-// var address = "esp8266-1920f7.local";
-// var urlBase = "http://" + address + "/";
+var espAddresses = ["192.168.1.253", "192.168.1.252", "192.168.1.251"];
+var address = espAddresses[0];
+var urlBase = "http://" + address + "/";
 
 var postColorTimer = {};
 var postValueTimer = {};
@@ -14,49 +11,65 @@ var ignoreColorChange = false;
 var ws = new ReconnectingWebSocket('ws://' + address + ':81/', ['arduino']);
 ws.debug = true;
 
-ws.onmessage = function(evt) {
-  if(evt.data != null)
-  {
-    var data = JSON.parse(evt.data);
-    if(data == null) return;
-    updateFieldValue(data.name, data.value);
+function updateCurrentESP(value) {
+  address = espAddresses[value];
+  urlBase = "http://" + address + "/";
+  ws.close();
+  ws = new ReconnectingWebSocket('ws://' + address + ':81/', ['arduino']);
+  ws.debug = true;
+
+  ws.onmessage = function(evt) {
+    //TODO: check if it is from the ip we are currently looking at
+    if(evt.data != null) {
+      var data = JSON.parse(evt.data);
+      if(data == null) return;
+      updateFieldValue(data.name, data.value);
+    }
   }
 }
 
 $(document).ready(function() {
-  $("#status").html("Connecting, please wait...");
-
-  $.get(urlBase + "all", function(data) {
-      $("#status").html("Loading, please wait...");
-
-      $.each(data, function(index, field) {
-        if (field.type == "Number") {
-          addNumberField(field);
-        } else if (field.type == "Boolean") {
-          addBooleanField(field);
-        } else if (field.type == "Select") {
-          addSelectField(field);
-        } else if (field.type == "Color") {
-          addColorFieldPalette(field);
-          addColorFieldPicker(field);
-        } else if (field.type == "Section") {
-          addSectionField(field);
-        }
+  $("#status").html("Select A Device...");
+  $("#input-espselect").change(function() {
+    let selection = $("#input-espselect option:selected").index();
+    $( "#form" ).empty();
+    if (selection != 0) {
+      updateCurrentESP(selection - 1);
+      $("#input-espselect").prop('disabled', true);
+      $("#status").html("Connecting, please wait...");
+      $.get(urlBase + "all", function(data) {
+        $("#status").html("Loading, please wait...");
+        $.each(data, function(index, field) {
+          if (field.type == "Number") {
+            addNumberField(field);
+          } else if (field.type == "Boolean") {
+            addBooleanField(field);
+          } else if (field.type == "Select") {
+            addSelectField(field);
+          } else if (field.type == "Color") {
+            addColorFieldPalette(field);
+            addColorFieldPicker(field);
+          } else if (field.type == "Section") {
+            addSectionField(field);
+          }
+        });
+        $(".minicolors").minicolors({
+          theme: "bootstrap",
+          changeDelay: 200,
+          control: "wheel",
+          format: "rgb",
+          inline: true
+        });
+        $("#status").html("Ready");
+        $("#input-espselect").prop('disabled', false);
+      })
+      .fail(function(jqXHR, textStatus, errorThrown) {
+        console.log("Unable to connect to the ESP selected")
+        $("#status").html("Unable to Connect to '" + $("#input-espselect option:selected").text() + "'");
+        $("#input-espselect").prop('disabled', false);
       });
-
-      $(".minicolors").minicolors({
-        theme: "bootstrap",
-        changeDelay: 200,
-        control: "wheel",
-        format: "rgb",
-        inline: true
-      });
-
-      $("#status").html("Ready");
-    })
-    .fail(function(errorThrown) {
-      console.log("error: " + errorThrown);
-    });
+    }
+  });
 });
 
 function addNumberField(field) {
