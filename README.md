@@ -1,7 +1,9 @@
 FastLED + ESP8266 + Dedicated Web Server
 =========
 
-Control an addressable LED strip with an ESP8266 via a web browser or infrared remote control.
+Control an addressable LED strip with an ESP8266 via a web browser.
+
+<B>NOTE:</B> If you would like to try the original master branch by jasoncoon, you can find it [here](https://github.com/Tiuipuv/esp8266-fastled-webserver). The instructions for the master are found in the Readme file.
 
 Hardware Used
 --------
@@ -50,13 +52,9 @@ The app depends on the following libraries. They must either be downloaded from 
 * [FastLED](https://github.com/FastLED/FastLED)
 * [Arduino WebSockets](https://github.com/Links2004/arduinoWebSockets)
 
-Download the app code from GitHub using the green Clone or Download button from [the GitHub project main page](https://github.com/jasoncoon/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file in your Arduino sketch folder.
+Download the app code from GitHub using the green Clone or Download button from [the GitHub project fork page](https://github.com/Tiuipuv/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file, placing the Web Server on the dedicated web server pc, and the arduino sketches in your Arduino sketch folder.
 
-The web app needs to be uploaded to the ESP8266's SPIFFS.  You can do this within the Arduino IDE after installing the [Arduino ESP8266FS tool](http://esp8266.github.io/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system).
-
-With ESP8266FS installed upload the web app using `ESP8266 Sketch Data Upload` command in the Arduino Tools menu.
-
-Then enter your wi-fi network SSID and password in the WiFi.h file, and upload the sketch using the Upload button.
+To connect each ESP to wifi, create a 'Secret.h' file in the Arduino sketch directory. This file is included in the build, but is ignored on Github through the '.gitignore file'. This ensures that no wifi ssid or passwords are shared on different branches of this project. Enter your wi-fi network SSID and password in the Secret.h file, and upload the sketch using the Upload button. Additional instructions for 'Secret.h' can be found in the main .ino file.
 
 REST Web services
 -----------------
