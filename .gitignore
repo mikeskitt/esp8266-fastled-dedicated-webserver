@@ -1,4 +1,4 @@
 Secret.h
-.vscode/
-test/
-Web Server/node_modules/
+.vscode
+/**/.vscode/
+/**/node_modules/
