@@ -689,7 +689,7 @@ void pride() {
 }
 
 void radialPaletteShift() {
-  for (uint8_t i = 0; i < NUM_LEDS; i++) {
+  for (uint16_t i = 0; i < NUM_LEDS; i++) {
     // leds[i] = ColorFromPalette( gCurrentPalette, gHue + sin8(i*16), brightness);
     leds[i] = ColorFromPalette(gCurrentPalette, i + gHue, 255, LINEARBLEND);
   }
@@ -817,7 +817,6 @@ void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette) {
 
     uint16_t pixelnumber = i;
     pixelnumber = (numleds - 1) - pixelnumber;
-
     nblend( ledarray[pixelnumber], newcolor, 128);
   }
 }

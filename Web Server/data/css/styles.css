@@ -1,1 +1,6 @@
 body { padding-bottom: 70px; }
+hr {
+    border: none;
+    height: 1px;
+    background-color: rgb(170, 170, 170); /* Modern Browsers */
+}
