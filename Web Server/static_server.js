@@ -9,7 +9,7 @@ const httpPort = process.argv[2] || 80;
 const app = express();
 
 var options = {
-  index: "index.htm"
+  index: ["index.html", "index.htm", "default.html", "default.htm"]
 };
 
 app.use(express.static('data', options));
