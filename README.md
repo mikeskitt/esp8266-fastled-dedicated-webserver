@@ -1,28 +1,18 @@
-FastLED + ESP8266 Web Server
+FastLED + ESP8266 + Dedicated Web Server
 =========
 
-Control an addressable LED strip with an ESP8266 via a web browser or infrared remote control.
+Control an addressable LED strip with an ESP8266 via a web browser.
 
-Hardware
+<B>NOTE:</B> If you would like to try the original master branch by jasoncoon, you can find it [here](https://github.com/Tiuipuv/esp8266-fastled-webserver). The instructions for the master are found in the Readme file.
+
+Hardware Used
 --------
 
-##### ESP8266 development board
-
-[![Wemos D1 Mini Pro & Headers](https://ae01.alicdn.com/kf/HTB1P1KVaMsSMeJjSsphq6xuJFXah/WEMOS-D1-mini-Pro-V1-1-0-16M-bytes-external-antenna-connector-ESP8266-WIFI-Internet-of.jpg_200x200.jpg)](https://www.aliexpress.com/item/WEMOS-D1-mini-Pro-16M-bytes-external-antenna-connector-ESP8266-WIFI-Internet-of-Things-development-board/32724692514.html)
-
-[Wemos D1 Mini Pro & Headers](https://www.aliexpress.com/item/WEMOS-D1-mini-Pro-16M-bytes-external-antenna-connector-ESP8266-WIFI-Internet-of-Things-development-board/32724692514.html)
-
-or
-
-[![Adafruit HUZZAH ESP8266 Breakout](https://cdn-shop.adafruit.com/310x233/2471-10.jpg)](https://www.adafruit.com/products/2471)
-
-[Adafruit HUZZAH ESP8266 Breakout](https://www.adafruit.com/products/2471)
+##### ESP-01 development board
+<img src="https://www.dhresource.com/0x0s/f2-albu-g4-M00-77-89-rBVaEFnE2HKADWUeAAEIckErKmE360.jpg/5pcs-lot-esp8266-esp-01-esp01-serial-wifi.jpg" width="350" title="ESP-01">
 
 ##### Addressable LED strip
-
-[![Adafruit NeoPixel Ring](https://www.adafruit.com/images/145x109/1586-00.jpg)](https://www.adafruit.com/product/1586)
-
-[Adafruit NeoPixel Ring]
+<img src="https://www.dhresource.com/0x0s/f2-albu-g5-M00-B2-07-rBVaJFkuXq-ASsw1AAX7DtWLrzQ281.jpg/jercio-30pixels-sk6812-rgb-ws2812b-tm1814.jpg" width="350" title="WS2812B Leds">
 
 Other hardware:
 
@@ -32,15 +22,10 @@ Recommended by [Adafruit NeoPixel "Best Practices"](https://learn.adafruit.com/a
 * [1000µF Capacitor](http://www.digikey.com/product-detail/en/panasonic-electronic-components/ECA-1EM102/P5156-ND/245015)
 * [300 to 500 Ohm resistor](https://www.digikey.com/product-detail/en/stackpole-electronics-inc/CF14JT470R/CF14JT470RCT-ND/1830342)
 
-Optional shield to make everything more tidy:
-
-[![Wemos D1 Mini ESP8266 LED & Level Shifter Shield](https://d3s5r33r268y59.cloudfront.net/13194/products/thumbs/2017-05-06T15:02:37.208Z-IMG_20170506_100623.jpg.114x76_q85_pad_rcrop.jpg)](https://www.tindie.com/products/jasoncoon/wemos-d1-mini-esp8266-led-and-level-shifter-shield/)
-
-[Wemos D1 Mini ESP8266 LED & Level Shifter Shield](https://www.tindie.com/products/jasoncoon/wemos-d1-mini-esp8266-led-and-level-shifter-shield)
-
 Features
 --------
-* Turn the NeoPixel Ring on and off
+* Manage multiple Neopixel Strips
+* Turn the NeoPixels on and off
 * Adjust the brightness
 * Change the display pattern
 * Adjust the color
@@ -52,11 +37,11 @@ Web App
 
 Patterns are requested by the app from the ESP8266, so as new patterns are added, they're automatically listed in the app.
 
-The web app is stored in SPIFFS (on-board flash memory).
+The web app is stored on the local server. The server files are found in the Web Server root directory.
 
 The web app is a single page app that uses [jQuery](https://jquery.com) and [Bootstrap](http://getbootstrap.com).  It has buttons for On/Off, a slider for brightness, a pattern selector, and a color picker (using [jQuery MiniColors](http://labs.abeautifulsite.net/jquery-minicolors)).  Event handlers for the controls are wired up, so you don't have to click a 'Send' button after making changes.  The brightness slider and the color picker use a delayed event handler, to prevent from flooding the ESP8266 web server with too many requests too quickly.
 
-The only drawback to SPIFFS that I've found so far is uploading the files can be extremely slow, requiring several minutes, sometimes regardless of how large the files are.  It can be so slow that I've been just developing the web app and debugging locally on my desktop (with a hard-coded IP for the ESP8266), before uploading to SPIFFS and testing on the ESP8266.
+By hosting on a local server, there is virtual no limitation to file size / app scalability, and changes are very easy to manage.
 
 Installing
 -----------
@@ -65,37 +50,16 @@ The app is installed via the Arduino IDE which can be [downloaded here](https://
 The app depends on the following libraries. They must either be downloaded from GitHub and placed in the Arduino 'libraries' folder, or installed as [described here](https://www.arduino.cc/en/Guide/Libraries) by using the Arduino library manager.
 
 * [FastLED](https://github.com/FastLED/FastLED)
-* [IRremoteESP8266](https://github.com/sebastienwarin/IRremoteESP8266)
 * [Arduino WebSockets](https://github.com/Links2004/arduinoWebSockets)
 
-Download the app code from GitHub using the green Clone or Download button from [the GitHub project main page](https://github.com/jasoncoon/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file in your Arduino sketch folder.
+Download the app code from GitHub using the green Clone or Download button from [the GitHub project fork page](https://github.com/Tiuipuv/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file, placing the Web Server on the dedicated web server pc, and the arduino sketches in your Arduino sketch folder.
 
-The web app needs to be uploaded to the ESP8266's SPIFFS.  You can do this within the Arduino IDE after installing the [Arduino ESP8266FS tool](http://esp8266.github.io/Arduino/versions/2.3.0/doc/filesystem.html#uploading-files-to-file-system).
-
-With ESP8266FS installed upload the web app using `ESP8266 Sketch Data Upload` command in the Arduino Tools menu.
-
-Then enter your wi-fi network SSID and password in the WiFi.h file, and upload the sketch using the Upload button.
-
-Compression
------------
-
-The web app files can be gzip compressed before uploading to SPIFFS by running the following command:
-
-`gzip -r data/`
-
-The ESP8266WebServer will automatically serve any .gz file.  The file index.htm.gz will get served as index.htm, with the content-encoding header set to gzip, so the browser knows to decompress it.  The ESP8266WebServer doesn't seem to like the Glyphicon fonts gzipped, though, so I decompress them with this command:
-
-`gunzip -r data/fonts/`
+To connect each ESP to wifi, create a 'Secret.h' file in the Arduino sketch directory. This file is included in the build, but is ignored on Github through the '.gitignore file'. This ensures that no wifi ssid or passwords are shared on different branches of this project. Enter your wi-fi network SSID and password in the Secret.h file, and upload the sketch using the Upload button. Additional instructions for 'Secret.h' can be found in the main .ino file.
 
 REST Web services
 -----------------
 
 The firmware implements basic [RESTful web services](https://en.wikipedia.org/wiki/Representational_state_transfer) using the ESP8266WebServer library.  Current values are requested with HTTP GETs, and values are set with POSTs using query string parameters.  It can run in connected or standalone access point modes.
-
-Infrared Remote Control
------------------------
-
-Control via infrared remote control is also supported, via the [ESP8266 port of the IRremote library](https://github.com/sebastienwarin/IRremoteESP8266).
 
 [Adafruit NeoPixel Ring]:https://www.adafruit.com/product/1586
 [Adafruit HUZZAH ESP8266 Breakout]:https://www.adafruit.com/products/2471
