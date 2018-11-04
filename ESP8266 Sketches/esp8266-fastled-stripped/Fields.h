@@ -59,6 +59,22 @@ String getPalettes() {
   return json;
 }
 
+String getZone() {
+  return String(currentZoneIndex);
+}
+
+String getZones() {
+  String json = "";
+
+  for (uint8_t i = 0; i < zoneCount; i++) {
+    json += "\"" + zones[i].name + "\"";
+    if (i < zoneCount - 1)
+      json += ",";
+  }
+
+  return json;
+}
+
 String getAutoplay() {
   return String(autoplay);
 }
@@ -92,6 +108,7 @@ String getTwinkleDensity() {
 }
 
 FieldList fields = {
+  { "zone", "Zone", SelectHeaderFieldType, 0, zoneCount, getZone, getZones },
   { "power", "Power", BooleanFieldType, 0, 1, getPower },
   { "brightness", "Brightness", NumberFieldType, 1, 255, getBrightness },
   { "pattern", "Pattern", SelectFieldType, 0, patternCount, getPattern, getPatterns },

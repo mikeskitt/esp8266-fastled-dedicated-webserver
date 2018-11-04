@@ -22,6 +22,8 @@ typedef String (*FieldGetter)();
 const String NumberFieldType = "Number";
 const String BooleanFieldType = "Boolean";
 const String SelectFieldType = "Select";
+const String SelectHeaderFieldType = "SelectHeader";
+const String SelectButtonFieldType = "SelectButton";
 const String ColorFieldType = "Color";
 const String SectionFieldType = "Section";
 

@@ -86,6 +86,8 @@ uint8_t autoplay = 0;
 uint8_t autoplayDuration = 10;
 unsigned long autoPlayTimeout = 0;
 
+uint8_t currentZoneIndex = 0; // Index number of which zone is active
+
 uint8_t currentPaletteIndex = 0;
 
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
@@ -152,6 +154,20 @@ PatternAndNameList patterns = {
 };
 
 const uint8_t patternCount = ARRAY_SIZE(patterns);
+
+typedef struct {
+  int start;
+  int end;
+  String name;
+} Zone;
+typedef Zone ZoneList[];
+
+ZoneList zones = {
+  {0, 2, "Left"},
+  {3, 10, "Middle"},
+  {11, 20, "Right"}
+};
+const uint8_t zoneCount = ARRAY_SIZE(zones);
 
 typedef struct {
   CRGBPalette16 palette;
@@ -234,6 +250,12 @@ void setup() {
     String newValue = setFieldValue(name, value, fields, fieldCount);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
     webServer.send(200, "text/json", newValue);
+  });
+  
+  webServer.on("/zone", HTTP_POST, []() {
+    String value = webServer.arg("value");
+    setZone(value.toInt());
+    sendInt(power);
   });
 
   webServer.on("/power", HTTP_POST, []() {
@@ -432,6 +454,13 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
       // webSocketsServer.sendBIN(num, payload, lenght);
       break;
   }
+}
+
+void setZone(uint8_t value) {
+  if (value >= zoneCount)
+    value = zoneCount - 1;
+  currentZoneIndex = value;
+  broadcastInt("zone", currentZoneIndex);
 }
 
 void setPower(uint8_t value) {

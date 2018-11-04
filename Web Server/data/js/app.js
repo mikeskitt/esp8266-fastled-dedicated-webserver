@@ -46,6 +46,8 @@ $(document).ready(function() {
             addBooleanField(field);
           } else if (field.type == "Select") {
             addSelectField(field);
+          } else if (field.type == "SelectHeader") {
+            addSelectHeaderField(field);
           } else if (field.type == "Color") {
             addColorFieldPalette(field);
             addColorFieldPicker(field);
@@ -152,6 +154,36 @@ function addBooleanField(field) {
 
   $("#form").append(template);
 }
+
+function addSelectHeaderField(field) {
+  var template = $("#selectNavTemplate").clone();
+
+  template.attr("id", "form-group-" + field.name);
+  template.attr("data-field-type", field.type);
+
+  var id = "input-" + field.name;
+
+  var label = template.find(".control-label");
+  label.attr("for", id);
+  label.text(field.label);
+
+  var select = template.find(".btn-group");
+  var btnTemplate = select.find("btn-zone");
+
+  for (var i = 0; i < field.options.length; i++) {
+    var btnText = field.options[i];
+    var r= $("<label class='btn btn-primary'><input type='radio' name='options' id='zone" + i + "' value='"+ i + "' autocomplete='off'>" + btnText + "</label>");
+    select.append(r);
+
+    r.click(function(event) {
+      var test = $(this).attr(id);
+      console.log($(event.target).find("#input").value);
+      //postValue(field.name, value);
+    });
+  }
+  $("#form").append(template);
+}
+
 
 function addSelectField(field) {
   var template = $("#selectTemplate").clone();
