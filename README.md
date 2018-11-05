@@ -52,14 +52,16 @@ The app depends on the following libraries. They must either be downloaded from 
 * [FastLED](https://github.com/FastLED/FastLED)
 * [Arduino WebSockets](https://github.com/Links2004/arduinoWebSockets)
 
-Download the app code from GitHub using the green Clone or Download button from [the GitHub project fork page](https://github.com/Tiuipuv/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file, placing the Web Server on the dedicated web server pc, and the arduino sketches in your Arduino sketch folder.
+Download the app code from GitHub using the green Clone or Download button from [the GitHub project fork page](https://github.com/Tiuipuv/esp8266-fastled-webserver) and click Download ZIP. Decompress the ZIP file, placing the Web Server on the dedicated web server pc, and the arduino sketches in your Arduino folder.
+
+Running the dedicated webserver requires Node.js. This can be downloaded from [here](https://nodejs.org/en/) by clicking the LTS button. After Node.js is installed, navigate to the directory with static_server.js and run it by typing the cmd 'node static_server.js' in that directory. Once the server is running, you can access the webpage at the computers ip address by typing http://XXX.XXX.XXX.XXX:80 into your browser.
 
 To connect each ESP to wifi, create a 'Secret.h' file in the Arduino sketch directory. This file is included in the build, but is ignored on Github through the '.gitignore file'. This ensures that no wifi ssid or passwords are shared on different branches of this project. Enter your wi-fi network SSID and password in the Secret.h file, and upload the sketch using the Upload button. Additional instructions for 'Secret.h' can be found in the main .ino file.
 
 REST Web services
 -----------------
 
-The firmware implements basic [RESTful web services](https://en.wikipedia.org/wiki/Representational_state_transfer) using the ESP8266WebServer library.  Current values are requested with HTTP GETs, and values are set with POSTs using query string parameters.  It can run in connected or standalone access point modes.
+The firmware implements basic [RESTful web services](https://en.wikipedia.org/wiki/Representational_state_transfer) using the ESP8266WebServer library.  Current values are requested with HTTP GETs, and values are set with POSTs using query string parameters.
 
 [Adafruit NeoPixel Ring]:https://www.adafruit.com/product/1586
 [Adafruit HUZZAH ESP8266 Breakout]:https://www.adafruit.com/products/2471
