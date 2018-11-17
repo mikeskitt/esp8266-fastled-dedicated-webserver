@@ -99,8 +99,7 @@ CRGBPalette16 twinkleFoxPalette;
 //  /             \
 //
 
-uint8_t attackDecayWave8( uint8_t i)
-{
+uint8_t attackDecayWave8( uint8_t i) {
   if( i < 86) {
     return i * 3;
   } else {
@@ -112,8 +111,7 @@ uint8_t attackDecayWave8( uint8_t i)
 // This function takes a pixel, and if its in the 'fading down'
 // part of the cycle, it adjusts the color a little bit like the
 // way that incandescent bulbs fade toward 'red' as they dim.
-void coolLikeIncandescent( CRGB& c, uint8_t phase)
-{
+void coolLikeIncandescent( CRGB& c, uint8_t phase) {
   if( phase < 128) return;
 
   uint8_t cooling = (phase - 128) >> 4;
@@ -130,8 +128,7 @@ void coolLikeIncandescent( CRGB& c, uint8_t phase)
 //  of one cycle of the brightness wave function.
 //  The 'high digits' are also used to determine whether this pixel
 //  should light at all during this cycle, based on the twinkleDensity.
-CRGB computeOneTwinkle( uint32_t ms, uint8_t salt)
-{
+CRGB computeOneTwinkle( uint32_t ms, uint8_t salt) {
   uint16_t ticks = ms >> (8-twinkleSpeed);
   uint8_t fastcycle8 = ticks;
   uint16_t slowcycle16 = (ticks >> 8) + salt;
@@ -162,8 +159,7 @@ CRGB computeOneTwinkle( uint32_t ms, uint8_t salt)
 //  "CalculateOneTwinkle" on each pixel.  It then displays
 //  either the twinkle color of the background color,
 //  whichever is brighter.
-void drawTwinkles()
-{
+void drawTwinkles() {
   // "PRNG16" is the pseudorandom number generator
   // It MUST be reset to the same starting value each time
   // this function is called, so that the sequence of 'random'
@@ -173,24 +169,7 @@ void drawTwinkles()
   uint32_t clock32 = millis();
 
   // Set up the background color, "bg".
-  // if AUTO_SELECT_BACKGROUND_COLOR == 1, and the first two colors of
-  // the current palette are identical, then a deeply faded version of
-  // that color is used for the background color
-  CRGB bg;
-  if( (AUTO_SELECT_BACKGROUND_COLOR == 1) &&
-      (twinkleFoxPalette[0] == twinkleFoxPalette[1] )) {
-    bg = twinkleFoxPalette[0];
-    uint8_t bglight = bg.getAverageLight();
-    if( bglight > 64) {
-      bg.nscale8_video( 16); // very bright, so scale to 1/16th
-    } else if( bglight > 16) {
-      bg.nscale8_video( 64); // not that bright, so scale to 1/4th
-    } else {
-      bg.nscale8_video( 86); // dim, scale to 1/3rd.
-    }
-  } else {
-    bg = gBackgroundColor; // just use the explicitly defined background color
-  }
+  CRGB bg = gBackgroundColor; // just use the explicitly defined background color
 
   uint8_t backgroundBrightness = bg.getAverageLight();
 
@@ -227,164 +206,7 @@ void drawTwinkles()
     }
   }
 }
-
-// A mostly red palette with green accents and white trim.
-// "CRGB::Gray" is used as white to keep the brightness more uniform.
-const TProgmemRGBPalette16 RedGreenWhite_p FL_PROGMEM =
-{  CRGB::Red, CRGB::Red, CRGB::Red, CRGB::Red,
-   CRGB::Red, CRGB::Red, CRGB::Red, CRGB::Red,
-   CRGB::Red, CRGB::Red, CRGB::Gray, CRGB::Gray,
-   CRGB::Green, CRGB::Green, CRGB::Green, CRGB::Green };
-
-// A mostly (dark) green palette with red berries.
-#define Holly_Green 0x00580c
-#define Holly_Red   0xB00402
-const TProgmemRGBPalette16 Holly_p FL_PROGMEM =
-{  Holly_Green, Holly_Green, Holly_Green, Holly_Green,
-   Holly_Green, Holly_Green, Holly_Green, Holly_Green,
-   Holly_Green, Holly_Green, Holly_Green, Holly_Green,
-   Holly_Green, Holly_Green, Holly_Green, Holly_Red
-};
-
-// A red and white striped palette
-// "CRGB::Gray" is used as white to keep the brightness more uniform.
-const TProgmemRGBPalette16 RedWhite_p FL_PROGMEM =
-{  CRGB::Red,  CRGB::Red,  CRGB::Gray, CRGB::Gray,
-   CRGB::Red,  CRGB::Red,  CRGB::Gray, CRGB::Gray,
-   CRGB::Red,  CRGB::Red,  CRGB::Gray, CRGB::Gray,
-   CRGB::Red,  CRGB::Red,  CRGB::Gray, CRGB::Gray };
-
-// A mostly blue palette with white accents.
-// "CRGB::Gray" is used as white to keep the brightness more uniform.
-const TProgmemRGBPalette16 BlueWhite_p FL_PROGMEM =
-{  CRGB::Blue, CRGB::Blue, CRGB::Blue, CRGB::Blue,
-   CRGB::Blue, CRGB::Blue, CRGB::Blue, CRGB::Blue,
-   CRGB::Blue, CRGB::Blue, CRGB::Blue, CRGB::Blue,
-   CRGB::Blue, CRGB::Gray, CRGB::Gray, CRGB::Gray };
-
-// A pure "fairy light" palette with some brightness variations
-#define HALFFAIRY ((CRGB::FairyLight & 0xFEFEFE) / 2)
-#define QUARTERFAIRY ((CRGB::FairyLight & 0xFCFCFC) / 4)
-const TProgmemRGBPalette16 FairyLight_p FL_PROGMEM =
-{  CRGB::FairyLight, CRGB::FairyLight, CRGB::FairyLight, CRGB::FairyLight,
-   HALFFAIRY,        HALFFAIRY,        CRGB::FairyLight, CRGB::FairyLight,
-   QUARTERFAIRY,     QUARTERFAIRY,     CRGB::FairyLight, CRGB::FairyLight,
-   CRGB::FairyLight, CRGB::FairyLight, CRGB::FairyLight, CRGB::FairyLight };
-
-// A palette of soft snowflakes with the occasional bright one
-const TProgmemRGBPalette16 Snow_p FL_PROGMEM =
-{  0x304048, 0x304048, 0x304048, 0x304048,
-   0x304048, 0x304048, 0x304048, 0x304048,
-   0x304048, 0x304048, 0x304048, 0x304048,
-   0x304048, 0x304048, 0x304048, 0xE0F0FF };
-
-// A palette reminiscent of large 'old-school' C9-size tree lights
-// in the five classic colors: red, orange, green, blue, and white.
-#define C9_Red    0xB80400
-#define C9_Orange 0x902C02
-#define C9_Green  0x046002
-#define C9_Blue   0x070758
-#define C9_White  0x606820
-const TProgmemRGBPalette16 RetroC9_p FL_PROGMEM =
-{  C9_Red,    C9_Orange, C9_Red,    C9_Orange,
-   C9_Orange, C9_Red,    C9_Orange, C9_Red,
-   C9_Green,  C9_Green,  C9_Green,  C9_Green,
-   C9_Blue,   C9_Blue,   C9_Blue,
-   C9_White
-};
-
-// A cold, icy pale blue palette
-#define Ice_Blue1 0x0C1040
-#define Ice_Blue2 0x182080
-#define Ice_Blue3 0x5080C0
-const TProgmemRGBPalette16 Ice_p FL_PROGMEM =
-{
-  Ice_Blue1, Ice_Blue1, Ice_Blue1, Ice_Blue1,
-  Ice_Blue1, Ice_Blue1, Ice_Blue1, Ice_Blue1,
-  Ice_Blue1, Ice_Blue1, Ice_Blue1, Ice_Blue1,
-  Ice_Blue2, Ice_Blue2, Ice_Blue2, Ice_Blue3
-};
-
-void redGreenWhiteTwinkles()
-{
-  twinkleFoxPalette = RedGreenWhite_p;
-  drawTwinkles();
-}
-
-void hollyTwinkles()
-{
-  twinkleFoxPalette = Holly_p;
-  drawTwinkles();
-}
-
-void redWhiteTwinkles()
-{
-  twinkleFoxPalette = RedWhite_p;
-  drawTwinkles();
-}
-
-void blueWhiteTwinkles()
-{
-  twinkleFoxPalette = BlueWhite_p;
-  drawTwinkles();
-}
-
-void fairyLightTwinkles()
-{
-  twinkleFoxPalette = FairyLight_p;
-  drawTwinkles();
-}
-
-void snow2Twinkles()
-{
-  twinkleFoxPalette = Snow_p;
-  drawTwinkles();
-}
-
-void iceTwinkles()
-{
-  twinkleFoxPalette = Ice_p;
-  drawTwinkles();
-}
-
-void retroC9Twinkles()
-{
-  twinkleFoxPalette = RetroC9_p;
-  drawTwinkles();
-}
-
-void partyTwinkles()
-{
-  twinkleFoxPalette = PartyColors_p;
-  drawTwinkles();
-}
-
-void forestTwinkles()
-{
-  twinkleFoxPalette = ForestColors_p;
-  drawTwinkles();
-}
-
-void lavaTwinkles()
-{
-  twinkleFoxPalette = LavaColors_p;
-  drawTwinkles();
-}
-
-void fireTwinkles()
-{
-  twinkleFoxPalette = HeatColors_p;
-  drawTwinkles();
-}
-
-void cloud2Twinkles()
-{
-  twinkleFoxPalette = CloudColors_p;
-  drawTwinkles();
-}
-
-void oceanTwinkles()
-{
-  twinkleFoxPalette = OceanColors_p;
+void showTwinkles() {
+  twinkleFoxPalette = palettes[currentPaletteIndex];
   drawTwinkles();
 }

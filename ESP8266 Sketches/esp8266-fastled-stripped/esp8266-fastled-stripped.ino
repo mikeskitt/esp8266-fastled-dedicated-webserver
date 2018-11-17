@@ -24,6 +24,7 @@ extern "C" {
 }
 
 #include <ESP8266WiFi.h>
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
 #include "GradientPalettes.h"
@@ -34,6 +35,14 @@ extern "C" {
 
 ESP8266WebServer webServer(80);
 WebSocketsServer webSocketsServer = WebSocketsServer(81);
+ESP8266WiFiMulti wifiMulti;
+typedef struct {
+  char* name;
+  char* password;
+} AP;
+typedef AP APList[];
+#include "Secret.h"
+const uint8_t apCount = ARRAY_SIZE(wifiAPs);
 
 #define DATA_PIN      2
 #define LED_TYPE      WS2812B
@@ -41,65 +50,41 @@ WebSocketsServer webSocketsServer = WebSocketsServer(81);
 #define NUM_LEDS      150
 
 #define MILLI_AMPS         8000     // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
-#define FRAMES_PER_SECOND  120 // here you can control the speed. With the Access Point / Web Server the animations run a bit slower.
 
 CRGB leds[NUM_LEDS];
 
-#include "Secret.h"
-
-IPAddress ip(192, 168, 1, 252); // where xx is the desired IP Address
 IPAddress gateway(192, 168, 1, 1); // set gateway to match your network
 IPAddress subnet(255, 255, 255, 0); // set subnet mask to match your network
 
-const uint8_t brightnessCount = 5;
-uint8_t brightnessMap[brightnessCount] = { 16, 32, 64, 128, 255 };
-uint8_t brightnessIndex = 0;
-
+uint8_t brightness = 64;
+uint8_t power = 1;
 // ten seconds per color palette makes a good demo, 20-120 is better for deployment
 uint8_t secondsPerPalette = 10;
 
-// COOLING: How much does the air cool as it rises? Less cooling = taller flames.  More cooling = shorter flames.
-uint8_t cooling = 49;
-
-// SPARKING: What chance (out of 255) is there that a new spark will be lit? Higher chance = more roaring fire.  Lower chance = more flickery fire.
+uint8_t cooling = 50;
 uint8_t sparking = 60;
-
 uint8_t speed = 30;
-
-///////////////////////////////////////////////////////////////////////
 
 // Forward declarations of an array of cpt-city gradient palettes, and
 // a count of how many there are.  The actual color palette definitions
 // are at the bottom of this file.
 extern const TProgmemRGBGradientPalettePtr gGradientPalettes[];
-
 uint8_t gCurrentPaletteNumber = 0;
 
 CRGBPalette16 gCurrentPalette( CRGB::Black);
 CRGBPalette16 gTargetPalette( gGradientPalettes[0] );
-
 CRGBPalette16 IceColors_p = CRGBPalette16(CRGB::Black, CRGB::Blue, CRGB::Aqua, CRGB::White);
 
 uint8_t currentPatternIndex = 0; // Index number of which pattern is current
-uint8_t autoplay = 0;
-
-uint8_t autoplayDuration = 10;
-unsigned long autoPlayTimeout = 0;
-
 uint8_t currentZoneIndex = 0; // Index number of which zone is active
-
 uint8_t currentPaletteIndex = 0;
 
+uint8_t autoplay = 0;
+uint8_t autoplayDuration = 10;
+unsigned long autoPlayTimeout = 0;
 uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 CRGB solidColor = CRGB::Blue;
-
-// scale the brightness of all pixels down
-void dimAll(byte value) {
-  for (int i = 0; i < NUM_LEDS; i++) {
-    leds[i].nscale8(value);
-  }
-}
 
 typedef void (*Pattern)();
 typedef Pattern PatternList[];
@@ -109,36 +94,61 @@ typedef struct {
 } PatternAndName;
 typedef PatternAndName PatternAndNameList[];
 
-#include "Twinkles.h"
+typedef struct {
+  int start;
+  int end;
+  String name;
+} Zone;
+typedef Zone ZoneList[];
+
+#include "RoomSpecific.h"
+const uint8_t zoneCount = ARRAY_SIZE(zones);
+
+typedef struct {
+  CRGBPalette16 palette;
+   String name;
+ } PaletteAndName;
+typedef PaletteAndName PaletteAndNameList[];
+
+#include "Palettes.h"
+const CRGBPalette16 palettes[] = {
+  RainbowColors_p,
+  RainbowStripeColors_p,
+  CloudColors_p,
+  LavaColors_p,
+  OceanColors_p,
+  ForestColors_p,
+  PartyColors_p,
+  HeatColors_p,
+  RedGreenWhite_p,
+  Holly_p,
+  RedWhite_p,
+  BlueWhite_p,
+  FairyLight_p,
+  Snow_p,
+  RetroC9_p,
+  Ice_p
+};
 #include "TwinkleFOX.h"
-
 // List of patterns to cycle through.  Each is defined as a separate function below.
-
+void pride();
+void colorWaves();
+void rainbow();
+void rainbowWithGlitter();
+void rainbowSolid();
+void confetti();
+void sinelon();
+void bpm();
+void juggle();
+void fire();
+void water();
+void showSolidColor();
 PatternAndNameList patterns = {
   { pride,                  "Pride" },
   { colorWaves,             "Color Waves" },
 
-  // twinkle patterns
-  { rainbowTwinkles,        "Rainbow Twinkles" },
-  { snowTwinkles,           "Snow Twinkles" },
-  { cloudTwinkles,          "Cloud Twinkles" },
-  { incandescentTwinkles,   "Incandescent Twinkles" },
-
   // TwinkleFOX patterns
-  { retroC9Twinkles,        "Retro C9 Twinkles" },
-  { redWhiteTwinkles,       "Red & White Twinkles" },
-  { blueWhiteTwinkles,      "Blue & White Twinkles" },
-  { redGreenWhiteTwinkles,  "Red, Green & White Twinkles" },
-  { fairyLightTwinkles,     "Fairy Light Twinkles" },
-  { snow2Twinkles,          "Snow 2 Twinkles" },
-  { hollyTwinkles,          "Holly Twinkles" },
-  { iceTwinkles,            "Ice Twinkles" },
-  { partyTwinkles,          "Party Twinkles" },
-  { forestTwinkles,         "Forest Twinkles" },
-  { lavaTwinkles,           "Lava Twinkles" },
-  { fireTwinkles,           "Fire Twinkles" },
-  { cloud2Twinkles,         "Cloud 2 Twinkles" },
-  { oceanTwinkles,          "Ocean Twinkles" },
+  { showTwinkles,           "Twinkles" },
 
   { rainbow,                "Rainbow" },
   { rainbowWithGlitter,     "Rainbow With Glitter" },
@@ -152,39 +162,7 @@ PatternAndNameList patterns = {
 
   { showSolidColor,         "Solid Color" }
 };
-
 const uint8_t patternCount = ARRAY_SIZE(patterns);
-
-typedef struct {
-  int start;
-  int end;
-  String name;
-} Zone;
-typedef Zone ZoneList[];
-
-ZoneList zones = {
-  {0, 2, "Left"},
-  {3, 10, "Middle"},
-  {11, 20, "Right"}
-};
-const uint8_t zoneCount = ARRAY_SIZE(zones);
-
-typedef struct {
-  CRGBPalette16 palette;
-   String name;
- } PaletteAndName;
-typedef PaletteAndName PaletteAndNameList[];
-
-const CRGBPalette16 palettes[] = {
-  RainbowColors_p,
-  RainbowStripeColors_p,
-  CloudColors_p,
-  LavaColors_p,
-  OceanColors_p,
-  ForestColors_p,
-  PartyColors_p,
-  HeatColors_p
-};
 
 const uint8_t paletteCount = ARRAY_SIZE(palettes);
 
@@ -197,13 +175,23 @@ const String paletteNames[paletteCount] = {
    "Forest",
   "Party",
    "Heat",
+   "Red Green White",
+   "Holly",
+   "Red White",
+   "Blue White",
+   "Fairy Light",
+   "Snow",
+   "Retro C9",
+   "Ice"
  };
 
 #include "Fields.h"
 
 void setup() {
   Serial.begin(115200);
-  delay(6000);
+  fill_solid(leds, NUM_LEDS, CRGB::Black);
+  FastLED.show();
+  delay(1000);
   Serial.setDebugOutput(true);
 
   FastLED.addLeds<LED_TYPE, DATA_PIN, COLOR_ORDER>(leds, NUM_LEDS);         // for WS2812 (Neopixel)
@@ -211,20 +199,26 @@ void setup() {
   FastLED.setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(brightness);
   FastLED.setMaxPowerInVoltsAndMilliamps(5, MILLI_AMPS);
-  fill_solid(leds, NUM_LEDS, CRGB::Black);
-  FastLED.show();
-  FastLED.setBrightness(brightness);
 
   WiFi.config(ip, gateway, subnet);
   WiFi.mode(WIFI_STA);
-  Serial.printf("Connecting to %s\n", ssid);
-  if (String(WiFi.SSID()) != String(ssid)) {
-    WiFi.begin(ssid, password);
-  }
+  Serial.printf("Connecting to %s\n", wifiAPs[0].name);
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
+  int count = 2;
+  for (int i = 0; i < apCount; i++) {
+    wifiMulti.addAP(wifiAPs[i].name, wifiAPs[i].password);
+  }
+  while (wifiMulti.run() != WL_CONNECTED) {
     Serial.print(".");
+    for (int i = 0; i < 5;i++) {
+      count++;
+      leds[count%NUM_LEDS] = CRGB(255, 0, 0);
+      leds[(count-1)%NUM_LEDS] = CRGB(128, 0, 0);
+      leds[(count-3)%NUM_LEDS] = CRGB(64, 0, 0);
+      leds[(count-3)%NUM_LEDS] = CRGB(0, 0, 0);
+      FastLED.show();
+      delay(100);
+    }
   }
 
   Serial.print("Connected! Open http://");
@@ -541,19 +535,6 @@ void setPaletteName(String name) {
   }
 }
 
-void adjustBrightness(bool up) {
-  if (up && brightnessIndex < brightnessCount - 1)
-    brightnessIndex++;
-  else if (!up && brightnessIndex > 0)
-    brightnessIndex--;
-
-  brightness = brightnessMap[brightnessIndex];
-
-  FastLED.setBrightness(brightness);
-  
-  broadcastInt("brightness", brightness);
-}
-
 void setBrightness(uint8_t value) {
   if (value > 255)
     value = 255;
@@ -661,6 +642,7 @@ void juggle() {
   fadeToBlackBy(leds, NUM_LEDS, faderate);
   for ( int i = 0; i < numdots; i++) {
     //beat16 is a FastLED 3.1 function
+    Serial.println("yea");
     leds[beatsin16(basebeat + i + numdots, 0, NUM_LEDS)] += CHSV(gHue + curhue, thissat, thisbright);
     curhue += hueinc;
   }
@@ -732,7 +714,7 @@ void heatMap(CRGBPalette16 palette, bool up) {
   random16_add_entropy(random(256));
 
   // Array of temperature readings at each simulation cell
-  static byte heat[256];
+  static byte heat[NUM_LEDS];
 
   byte colorindex;
 
@@ -740,7 +722,6 @@ void heatMap(CRGBPalette16 palette, bool up) {
   for ( uint16_t i = 0; i < NUM_LEDS; i++) {
     heat[i] = qsub8( heat[i],  random8(0, ((cooling * 10) / NUM_LEDS) + 2));
   }
-
   // Step 2.  Heat from each cell drifts 'up' and diffuses a little
   for ( uint16_t k = NUM_LEDS - 1; k >= 2; k--) {
     heat[k] = (heat[k - 1] + heat[k - 2] + heat[k - 2] ) / 3;

@@ -16,8 +16,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-uint8_t power = 1;
-uint8_t brightness = brightnessMap[brightnessIndex];
 
 String getPower() {
   return String(power);
