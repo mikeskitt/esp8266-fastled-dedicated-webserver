@@ -1,5 +1,5 @@
 // used when hosting the site somewhere other than the ESP8266 (handy for testing without waiting forever to upload to SPIFFS)
-var espAddresses = ["192.168.1.253", "192.168.1.252", "192.168.1.251"];
+var espAddresses = ["192.168.1.253", "192.168.1.252", "192.168.1.251", "192.168.1.250", "192.168.1.249", "192.168.1.248"];
 var address = espAddresses[0];
 var urlBase = "http://" + address + "/";
 
