@@ -67,6 +67,7 @@ String setFieldValue(String name, String value, FieldList fields, uint8_t count)
 }
 
 String getFieldsJson(FieldList fields, uint8_t count) {
+  
   String json = "[";
 
   for (uint8_t i = 0; i < count; i++) {

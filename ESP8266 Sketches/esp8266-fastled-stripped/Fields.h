@@ -29,18 +29,6 @@ String getPattern() {
   return String(currentPatternIndex);
 }
 
-String getPatterns() {
-  String json = "";
-
-  for (uint8_t i = 0; i < patternCount; i++) {
-    json += "\"" + patterns[i].name + "\"";
-    if (i < patternCount - 1)
-      json += ",";
-  }
-
-  return json;
-}
-
 String getPalette() {
   return String(currentPaletteIndex);
 }
@@ -105,24 +93,52 @@ String getTwinkleDensity() {
   return String(twinkleDensity);
 }
 
-FieldList fields = {
-  { "zone", "Zone", SelectHeaderFieldType, 0, zoneCount, getZone, getZones },
-  { "power", "Power", BooleanFieldType, 0, 1, getPower },
-  { "brightness", "Brightness", NumberFieldType, 1, 255, getBrightness },
-  { "pattern", "Pattern", SelectFieldType, 0, patternCount, getPattern, getPatterns },
+FieldList fieldParams = {
   { "palette", "Palette", SelectFieldType, 0, paletteCount, getPalette, getPalettes },
   { "speed", "Speed", NumberFieldType, 1, 255, getSpeed },
-  { "autoplay", "Autoplay", SectionFieldType },
-  { "autoplay", "Autoplay", BooleanFieldType, 0, 1, getAutoplay },
-  { "autoplayDuration", "Autoplay Duration", NumberFieldType, 0, 255, getAutoplayDuration },
-  { "solidColor", "Solid Color", SectionFieldType },
   { "solidColor", "Color", ColorFieldType, 0, 255, getSolidColor },
-  { "fire", "Fire & Water", SectionFieldType },
   { "cooling", "Cooling", NumberFieldType, 0, 255, getCooling },
   { "sparking", "Sparking", NumberFieldType, 0, 255, getSparking },
-  { "twinkles", "Twinkles", SectionFieldType },
   { "twinkleSpeed", "Twinkle Speed", NumberFieldType, 0, 8, getTwinkleSpeed },
-  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, getTwinkleDensity },
+  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, getTwinkleDensity }
 };
 
-uint8_t fieldCount = ARRAY_SIZE(fields);
+String getFieldsJsonVec(std::vector<int> fields) {
+  String json = "[";
+
+  for (uint8_t i = 0; i < fields.size(); i++) {
+    Field field = fieldParams[fields[i]];
+
+    json += "{\"name\":\"" + field.name + "\",\"label\":\"" + field.label + "\",\"type\":\"" + field.type + "\"";
+
+    if(field.getValue) {
+      if (field.type == ColorFieldType || field.type == "String") {
+        json += ",\"value\":\"" + field.getValue() + "\"";
+      }
+      else {
+        json += ",\"value\":" + field.getValue();
+      }
+    }
+
+    if (field.type == NumberFieldType) {
+      json += ",\"min\":" + String(field.min);
+      json += ",\"max\":" + String(field.max);
+    }
+
+    if (field.getOptions) {
+      json += ",\"options\":[";
+      json += field.getOptions();
+      json += "]";
+    }
+
+    json += "}";
+
+    if (i < fields.size() - 1)
+      json += ",";
+  }
+
+  json += "]";
+
+  return json;
+}
+FieldList activeFieldParameters = {};

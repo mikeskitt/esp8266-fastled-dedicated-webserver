@@ -17,6 +17,7 @@
  */
 #define FASTLED_INTERRUPT_RETRY_COUNT 1
 #include <FastLED.h>
+#include <vector>
 FASTLED_USING_NAMESPACE
 
 extern "C" {
@@ -35,6 +36,7 @@ extern "C" {
 
 ESP8266WebServer webServer(80);
 WebSocketsServer webSocketsServer = WebSocketsServer(81);
+
 ESP8266WiFiMulti wifiMulti;
 typedef struct {
   char* name;
@@ -44,12 +46,19 @@ typedef AP APList[];
 #include "Secret.h"
 const uint8_t apCount = ARRAY_SIZE(wifiAPs);
 
+typedef struct {
+  int start;
+  int end;
+  String name;
+} Zone;
+typedef Zone ZoneList[];
+
+#include "RoomSpecific.h"
+const uint8_t zoneCount = ARRAY_SIZE(zones);
+
 #define DATA_PIN      2
 #define LED_TYPE      WS2812B
 #define COLOR_ORDER   GRB
-#define NUM_LEDS      150
-
-#define MILLI_AMPS         8000     // IMPORTANT: set the max milli-Amps of your power supply (4A = 4000mA)
 
 CRGB leds[NUM_LEDS];
 
@@ -86,24 +95,6 @@ uint8_t gHue = 0; // rotating "base color" used by many of the patterns
 
 CRGB solidColor = CRGB::Blue;
 
-typedef void (*Pattern)();
-typedef Pattern PatternList[];
-typedef struct {
-  Pattern pattern;
-  String name;
-} PatternAndName;
-typedef PatternAndName PatternAndNameList[];
-
-typedef struct {
-  int start;
-  int end;
-  String name;
-} Zone;
-typedef Zone ZoneList[];
-
-#include "RoomSpecific.h"
-const uint8_t zoneCount = ARRAY_SIZE(zones);
-
 typedef struct {
   CRGBPalette16 palette;
    String name;
@@ -129,41 +120,6 @@ const CRGBPalette16 palettes[] = {
   RetroC9_p,
   Ice_p
 };
-#include "TwinkleFOX.h"
-// List of patterns to cycle through.  Each is defined as a separate function below.
-void pride();
-void colorWaves();
-void rainbow();
-void rainbowWithGlitter();
-void rainbowSolid();
-void confetti();
-void sinelon();
-void bpm();
-void juggle();
-void fire();
-void water();
-void showSolidColor();
-PatternAndNameList patterns = {
-  { pride,                  "Pride" },
-  { colorWaves,             "Color Waves" },
-
-  // TwinkleFOX patterns
-  { showTwinkles,           "Twinkles" },
-
-  { rainbow,                "Rainbow" },
-  { rainbowWithGlitter,     "Rainbow With Glitter" },
-  { rainbowSolid,           "Solid Rainbow" },
-  { confetti,               "Confetti" },
-  { sinelon,                "Sinelon" },
-  { bpm,                    "Beat" },
-  { juggle,                 "Juggle" },
-  { fire,                   "Fire" },
-  { water,                  "Water" },
-
-  { showSolidColor,         "Solid Color" }
-};
-const uint8_t patternCount = ARRAY_SIZE(patterns);
-
 const uint8_t paletteCount = ARRAY_SIZE(palettes);
 
 const String paletteNames[paletteCount] = {
@@ -184,8 +140,75 @@ const String paletteNames[paletteCount] = {
    "Retro C9",
    "Ice"
  };
+#include "TwinkleFOX.h"
 
 #include "Fields.h"
+void pride();
+void colorWaves();
+void rainbow();
+void rainbowWithGlitter();
+void rainbowSolid();
+void confetti();
+void sinelon();
+void bpm();
+void juggle();
+void fire();
+void water();
+void showSolidColor();
+typedef void (*Pattern)();
+typedef Pattern PatternList[];
+typedef struct {
+  Pattern pattern;
+  String name;
+  std::vector<int> params;
+} PatternAndName;
+typedef PatternAndName PatternAndNameList[];
+
+PatternAndNameList patterns = {
+  { pride,                  "Pride", {0, 1}},
+  { colorWaves,             "Color Waves", {2, 3, 4, 5} },
+
+  // TwinkleFOX patterns
+  { showTwinkles,           "Twinkles", {0} },
+
+  { rainbow,                "Rainbow", {0, 1, 5} },
+  { rainbowWithGlitter,     "Rainbow With Glitter", {0, 1} },
+  { rainbowSolid,           "Solid Rainbow", {0, 1} },
+  { confetti,               "Confetti", {0, 1} },
+  { sinelon,                "Sinelon", {0, 1} },
+  { bpm,                    "Beat", {0, 1} },
+  { juggle,                 "Juggle", {0, 1} },
+  { fire,                   "Fire", {0, 1} },
+  { water,                  "Water", {0, 1} },
+
+  { showSolidColor,         "Solid Color" , {0, 1}}
+};
+const uint8_t patternCount = ARRAY_SIZE(patterns);
+
+String getPatterns() {
+  String json = "";
+
+  for (uint8_t i = 0; i < patternCount; i++) {
+    json += "\"" + patterns[i].name + "\"";
+    if (i < patternCount - 1)
+      json += ",";
+  }
+
+  return json;
+}
+
+FieldList fields = {
+  { "zone", "Zone", SelectHeaderFieldType, 0, zoneCount, getZone, getZones },
+  { "power", "Power", BooleanFieldType, 0, 1, getPower },
+  { "brightness", "Brightness", NumberFieldType, 1, 255, getBrightness },
+  { "pattern", "Pattern", SelectFieldType, 0, patternCount, getPattern, getPatterns },
+  { "autoplay", "Autoplay", SectionFieldType },
+  { "autoplay", "Autoplay", BooleanFieldType, 0, 1, getAutoplay },
+  { "autoplayDuration", "Autoplay Duration", NumberFieldType, 0, 255, getAutoplayDuration },
+  { "parameters", "Parameters", SectionFieldType }
+};
+
+uint8_t fieldCount = ARRAY_SIZE(fields);
 
 void setup() {
   Serial.begin(115200);
@@ -227,6 +250,12 @@ void setup() {
 
   webServer.on("/all", HTTP_GET, []() {
     String json = getFieldsJson(fields, fieldCount);
+    webServer.sendHeader("Access-Control-Allow-Origin", "*");
+    webServer.send(200, "text/json", json);
+  });
+  
+  webServer.on("/parameters", HTTP_GET, []() {
+    String json = getFieldsJsonVec(patterns[currentPatternIndex].params);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
     webServer.send(200, "text/json", json);
   });
