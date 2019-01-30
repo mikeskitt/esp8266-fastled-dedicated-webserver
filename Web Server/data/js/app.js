@@ -3,12 +3,14 @@ var espAddresses = ["192.168.1.253", "192.168.1.252", "192.168.1.251", "192.168.
 var address = espAddresses[0];
 var urlBase = "http://" + address + "/";
 
-var postColorTimer = {};
-var postValueTimer = {};
+let postColorTimer = {};
+let postValueTimer = {};
 
-var ignoreColorChange = false;
+let ignoreColorChange = false;
+let paramsUpdateRequested = false;
 
-var ws = new ReconnectingWebSocket('ws://' + address + ':81/', ['arduino']);
+let ws = new ReconnectingWebSocket('ws://' + address + ':81/', ['arduino']);
+ws.close();
 ws.debug = true;
 
 function updateCurrentESP(value) {
@@ -21,7 +23,7 @@ function updateCurrentESP(value) {
   ws.onmessage = function(evt) {
     //TODO: check if it is from the ip we are currently looking at
     if(evt.data != null) {
-      var data = JSON.parse(evt.data);
+      let data = JSON.parse(evt.data);
       if(data == null) return;
       updateFieldValue(data.name, data.value);
     }
@@ -32,7 +34,7 @@ $(document).ready(function() {
   $("#status").html("Select A Device...");
   $("#input-espselect").change(function() {
     let selection = $("#input-espselect option:selected").index();
-    $( "#form" ).empty();
+    $( "#formGeneral" ).empty();
     if (selection != 0) {
       updateCurrentESP(selection - 1);
       $("#input-espselect").prop('disabled', true);
@@ -41,18 +43,18 @@ $(document).ready(function() {
         $("#status").html("Loading, please wait...");
         $.each(data, function(index, field) {
           if (field.type == "Number") {
-            addNumberField(field);
+            addNumberField(field, "formGeneral");
           } else if (field.type == "Boolean") {
-            addBooleanField(field);
+            addBooleanField(field, "formGeneral");
           } else if (field.type == "Select") {
-            addSelectField(field);
+            addSelectField(field, "formGeneral");
           } else if (field.type == "SelectHeader") {
-            addSelectHeaderField(field);
+            addSelectHeaderField(field, "formGeneral");
           } else if (field.type == "Color") {
-            addColorFieldPalette(field);
-            addColorFieldPicker(field);
+            addColorFieldPalette(field, "formGeneral");
+            addColorFieldPicker(field, "formGeneral");
           } else if (field.type == "Section") {
-            addSectionField(field);
+            addSectionField(field, "formGeneral");
           }
         });
         $(".minicolors").minicolors({
@@ -62,30 +64,31 @@ $(document).ready(function() {
           format: "rgb",
           inline: true
         });
-        $("#status").html("Ready");
         $("#input-espselect").prop('disabled', false);
+        updateParams();
       })
       .fail(function(jqXHR, textStatus, errorThrown) {
         console.log("Unable to connect to the ESP selected")
         $("#status").html("Unable to Connect to '" + $("#input-espselect option:selected").text() + "'");
         $("#input-espselect").prop('disabled', false);
+        ws.close();
       });
     }
   });
 });
 
-function addNumberField(field) {
-  var template = $("#numberTemplate").clone();
+function addNumberField(field, formId) {
+  let template = $("#numberTemplate").clone();
 
   template.attr("id", "form-group-" + field.name);
   template.attr("data-field-type", field.type);
 
-  var label = template.find(".control-label");
+  let label = template.find(".control-label");
   label.attr("for", "input-" + field.name);
   label.text(field.label);
 
-  var input = template.find(".input");
-  var slider = template.find(".slider");
+  let input = template.find(".input");
+  let slider = template.find(".slider");
   slider.attr("id", "input-" + field.name);
   if (field.min) {
     input.attr("min", field.min);
@@ -107,37 +110,37 @@ function addNumberField(field) {
   });
 
   slider.on("change", function() {
-    var value = $(this).val();
+    let value = $(this).val();
     input.val(value);
     field.value = value;
     delayPostValue(field.name, value);
   });
 
   input.on("change", function() {
-    var value = $(this).val();
+    let value = $(this).val();
     slider.val(value);
     field.value = value;
     delayPostValue(field.name, value);
   });
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
-function addBooleanField(field) {
-  var template = $("#booleanTemplate").clone();
+function addBooleanField(field, formId) {
+  let template = $("#booleanTemplate").clone();
 
   template.attr("id", "form-group-" + field.name);
   template.attr("data-field-type", field.type);
 
-  var label = template.find(".control-label");
+  let label = template.find(".control-label");
   label.attr("for", "btn-group-" + field.name);
   label.text(field.label);
 
-  var btngroup = template.find(".btn-group");
+  let btngroup = template.find(".btn-group");
   btngroup.attr("id", "btn-group-" + field.name);
 
-  var btnOn = template.find("#btnOn");
-  var btnOff = template.find("#btnOff");
+  let btnOn = template.find("#btnOn");
+  let btnOff = template.find("#btnOff");
 
   btnOn.attr("id", "btnOn" + field.name);
   btnOff.attr("id", "btnOff" + field.name);
@@ -152,57 +155,56 @@ function addBooleanField(field) {
     setBooleanFieldValue(field, btnOn, btnOff, 0)
   });
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
-function addSelectHeaderField(field) {
-  var template = $("#selectNavTemplate").clone();
+function addSelectHeaderField(field, formId) {
+  let template = $("#selectNavTemplate").clone();
 
   template.attr("id", "form-group-" + field.name);
   template.attr("data-field-type", field.type);
 
-  var id = "input-" + field.name;
+  let id = "input-" + field.name;
 
-  var label = template.find(".control-label");
+  let label = template.find(".control-label");
   label.attr("for", id);
   label.text(field.label);
 
-  var select = template.find(".btn-group");
-  var btnTemplate = select.find("btn-zone");
+  let select = template.find(".btn-group");
+  let btnTemplate = select.find("btn-zone");
 
-  for (var i = 0; i < field.options.length; i++) {
-    var btnText = field.options[i];
-    var r= $("<label class='btn btn-primary'><input type='radio' name='options' id='zone" + i + "' value='"+ i + "' autocomplete='off'>" + btnText + "</label>");
+  for (let i = 0; i < field.options.length; i++) {
+    let btnText = field.options[i];
+    let r= $("<label class='btn btn-primary'><input type='radio' name='options' id='zone" + i + "' value='"+ i + "' autocomplete='off'>" + btnText + "</label>");
     select.append(r);
 
     r.click(function(event) {
-      var test = $(this).attr(id);
+      let test = $(this).attr(id);
       console.log($(event.target).find("#input").value);
       //postValue(field.name, value);
     });
   }
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
-
-function addSelectField(field) {
-  var template = $("#selectTemplate").clone();
+function addSelectField(field, formId) {
+  let template = $("#selectTemplate").clone();
 
   template.attr("id", "form-group-" + field.name);
   template.attr("data-field-type", field.type);
 
-  var id = "input-" + field.name;
+  let id = "input-" + field.name;
 
-  var label = template.find(".control-label");
+  let label = template.find(".control-label");
   label.attr("for", id);
   label.text(field.label);
 
-  var select = template.find(".form-control");
+  let select = template.find(".form-control");
   select.attr("id", id);
 
-  for (var i = 0; i < field.options.length; i++) {
-    var optionText = field.options[i];
-    var option = $("<option></option>");
+  for (let i = 0; i < field.options.length; i++) {
+    let optionText = field.options[i];
+    let option = $("<option></option>");
     option.text(optionText);
     option.attr("value", i);
     select.append(option);
@@ -211,45 +213,91 @@ function addSelectField(field) {
   select.val(field.value);
 
   select.change(function() {
-    var value = template.find("#" + id + " option:selected").index();
+    let value = template.find("#" + id + " option:selected").index();
+    if (field.name == "pattern") {
+      $("#formParameters").empty();
+      paramsUpdateRequested = true;
+    }
     postValue(field.name, value);
   });
 
-  var previousButton = template.find(".btn-previous");
-  var nextButton = template.find(".btn-next");
+  let previousButton = template.find(".btn-previous");
+  let nextButton = template.find(".btn-next");
 
   previousButton.click(function() {
-    var value = template.find("#" + id + " option:selected").index();
-    var count = select.find("option").length;
+    let value = template.find("#" + id + " option:selected").index();
+    let count = select.find("option").length;
     value--;
     if(value < 0)
       value = count - 1;
     select.val(value);
+    if (field.name == "pattern") {
+      $("#formParameters").empty();
+      paramsUpdateRequested = true;
+    }
     postValue(field.name, value);
   });
 
   nextButton.click(function() {
-    var value = template.find("#" + id + " option:selected").index();
-    var count = select.find("option").length;
+    let value = template.find("#" + id + " option:selected").index();
+    let count = select.find("option").length;
     value++;
     if(value >= count)
       value = 0;
     select.val(value);
+    if (field.name == "pattern") {
+      $("#formParameters").empty();
+      paramsUpdateRequested = true;
+    }
     postValue(field.name, value);
   });
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
-
-function addColorFieldPicker(field) {
-  var template = $("#colorTemplate").clone();
+function updateParams() {
+  $("#formParameters").empty();
+  $.get(urlBase + "parameters", function(data) {
+    $("#status").html("Loading, please wait...");
+    $.each(data, function(index, field) {
+      if (field.type == "Number") {
+        addNumberField(field, "formParameters");
+      } else if (field.type == "Boolean") {
+        addBooleanField(field, "formParameters");
+      } else if (field.type == "Select") {
+        addSelectField(field, "formParameters");
+      } else if (field.type == "SelectHeader") {
+        addSelectHeaderField(field, "formParameters");
+      } else if (field.type == "Color") {
+        addColorFieldPalette(field, "formParameters");
+        addColorFieldPicker(field, "formParameters");
+      } else if (field.type == "Section") {
+        addSectionField(field, "formParameters");
+      }
+    });
+    $(".minicolors").minicolors({
+      theme: "bootstrap",
+      changeDelay: 200,
+      control: "wheel",
+      format: "rgb",
+      inline: true
+    });
+    $("#status").html("Ready");
+  })
+  .fail(function(jqXHR, textStatus, errorThrown) {
+    console.log("Unable to connect to the ESP selected")
+    $("#status").html("Unable to Connect to '" + $("#input-espselect option:selected").text() + "'");
+    $("#input-espselect").prop('disabled', false);
+  });
+}
+function addColorFieldPicker(field, formId) {
+  let template = $("#colorTemplate").clone();
 
   template.attr("id", "form-group-" + field.name);
   template.attr("data-field-type", field.type);
 
-  var id = "input-" + field.name;
+  let id = "input-" + field.name;
 
-  var input = template.find(".minicolors");
+  let input = template.find(".minicolors");
   input.attr("id", id);
 
   if(!field.value.startsWith("rgb("))
@@ -260,15 +308,15 @@ function addColorFieldPicker(field) {
 
   input.val(field.value);
 
-  var components = rgbToComponents(field.value);
+  let components = rgbToComponents(field.value);
 
-  var redInput = template.find(".color-red-input");
-  var greenInput = template.find(".color-green-input");
-  var blueInput = template.find(".color-blue-input");
+  let redInput = template.find(".color-red-input");
+  let greenInput = template.find(".color-green-input");
+  let blueInput = template.find(".color-blue-input");
 
-  var redSlider = template.find(".color-red-slider");
-  var greenSlider = template.find(".color-green-slider");
-  var blueSlider = template.find(".color-blue-slider");
+  let redSlider = template.find(".color-red-slider");
+  let greenSlider = template.find(".color-green-slider");
+  let blueSlider = template.find(".color-blue-slider");
 
   redInput.attr("id", id + "-red");
   greenInput.attr("id", id + "-green");
@@ -287,54 +335,54 @@ function addColorFieldPicker(field) {
   blueSlider.val(components.b);
 
   redInput.on("change", function() {
-    var value = $("#" + id).val();
-    var r = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let r = $(this).val();
+    let components = rgbToComponents(value);
     field.value = r + "," + components.g + "," + components.b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     redSlider.val(r);
   });
 
   greenInput.on("change", function() {
-    var value = $("#" + id).val();
-    var g = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let g = $(this).val();
+    let components = rgbToComponents(value);
     field.value = components.r + "," + g + "," + components.b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     greenSlider.val(g);
   });
 
   blueInput.on("change", function() {
-    var value = $("#" + id).val();
-    var b = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let b = $(this).val();
+    let components = rgbToComponents(value);
     field.value = components.r + "," + components.g + "," + b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     blueSlider.val(b);
   });
 
   redSlider.on("change", function() {
-    var value = $("#" + id).val();
-    var r = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let r = $(this).val();
+    let components = rgbToComponents(value);
     field.value = r + "," + components.g + "," + components.b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     redInput.val(r);
   });
 
   greenSlider.on("change", function() {
-    var value = $("#" + id).val();
-    var g = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let g = $(this).val();
+    let components = rgbToComponents(value);
     field.value = components.r + "," + g + "," + components.b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     greenInput.val(g);
   });
 
   blueSlider.on("change", function() {
-    var value = $("#" + id).val();
-    var b = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $("#" + id).val();
+    let b = $(this).val();
+    let components = rgbToComponents(value);
     field.value = components.r + "," + components.g + "," + b;
     $("#" + id).minicolors("value", "rgb(" + field.value + ")");
     blueInput.val(b);
@@ -355,8 +403,8 @@ function addColorFieldPicker(field) {
   input.on("change", function() {
     if (ignoreColorChange) return;
 
-    var value = $(this).val();
-    var components = rgbToComponents(value);
+    let value = $(this).val();
+    let components = rgbToComponents(value);
 
     redInput.val(components.r);
     greenInput.val(components.g);
@@ -370,27 +418,27 @@ function addColorFieldPicker(field) {
     delayPostColor(field.name, components);
   });
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
-function addColorFieldPalette(field) {
-  var template = $("#colorPaletteTemplate").clone();
+function addColorFieldPalette(field, formId) {
+  let template = $("#colorPaletteTemplate").clone();
 
-  var buttons = template.find(".btn-color");
+  let buttons = template.find(".btn-color");
 
-  var label = template.find(".control-label");
+  let label = template.find(".control-label");
   label.text(field.label);
 
   buttons.each(function(index, button) {
     $(button).click(function() {
-      var rgb = $(this).css('backgroundColor');
-      var components = rgbToComponents(rgb);
+      let rgb = $(this).css('backgroundColor');
+      let components = rgbToComponents(rgb);
 
       field.value = components.r + "," + components.g + "," + components.b;
       postColor(field.name, components);
 
       ignoreColorChange = true;
-      var id = "#input-" + field.name;
+      let id = "#input-" + field.name;
       $(id).minicolors("value", "rgb(" + field.value + ")");
       $(id + "-red").val(components.r);
       $(id + "-green").val(components.g);
@@ -402,38 +450,38 @@ function addColorFieldPalette(field) {
     });
   });
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
-function addSectionField(field) {
-  var template = $("#sectionTemplate").clone();
+function addSectionField(field, formId) {
+  let template = $("#sectionTemplate").clone();
 
   template.attr("id", "form-group-section-" + field.name);
   template.attr("data-field-type", field.type);
 
-  $("#form").append(template);
+  $("#" + formId).append(template);
 }
 
 function updateFieldValue(name, value) {
-  var group = $("#form-group-" + name);
+  let group = $("#form-group-" + name);
 
-  var type = group.attr("data-field-type");
+  let type = group.attr("data-field-type");
 
   if (type == "Number") {
-    var input = group.find(".form-control");
+    let input = group.find(".form-control");
     input.val(value);
   } else if (type == "Boolean") {
-    var btnOn = group.find("#btnOn" + name);
-    var btnOff = group.find("#btnOff" + name);
+    let btnOn = group.find("#btnOn" + name);
+    let btnOff = group.find("#btnOff" + name);
 
     btnOn.attr("class", value ? "btn btn-primary" : "btn btn-default");
     btnOff.attr("class", !value ? "btn btn-primary" : "btn btn-default");
 
   } else if (type == "Select") {
-    var select = group.find(".form-control");
+    let select = group.find(".form-control");
     select.val(value);
   } else if (type == "Color") {
-    var input = group.find(".form-control");
+    let input = group.find(".form-control");
     input.val("rgb(" + value + ")");
   }
 };
@@ -450,13 +498,17 @@ function setBooleanFieldValue(field, btnOn, btnOff, value) {
 function postValue(name, value) {
   $("#status").html("Setting " + name + ": " + value + ", please wait...");
 
-  var body = { name: name, value: value };
+  let body = { name: name, value: value };
 
   $.post(urlBase + name + "?value=" + value, body, function(data) {
     if (data.name != null) {
       $("#status").html("Set " + name + ": " + data.name);
     } else {
       $("#status").html("Set " + name + ": " + data);
+      if (paramsUpdateRequested) {
+        paramsUpdateRequested = false;
+        updateParams();
+      }
     }
   });
 }
@@ -471,7 +523,7 @@ function delayPostValue(name, value) {
 function postColor(name, value) {
   $("#status").html("Setting " + name + ": " + value.r + "," + value.g + "," + value.b + ", please wait...");
 
-  var body = { name: name, r: value.r, g: value.g, b: value.b };
+  let body = { name: name, r: value.r, g: value.g, b: value.b };
 
   $.post(urlBase + name + "?r=" + value.r + "&g=" + value.g + "&b=" + value.b, body, function(data) {
     $("#status").html("Set " + name + ": " + data);
@@ -487,7 +539,7 @@ function delayPostColor(name, value) {
 }
 
 function componentToHex(c) {
-  var hex = c.toString(16);
+  let hex = c.toString(16);
   return hex.length == 1 ? "0" + hex : hex;
 }
 
@@ -496,7 +548,7 @@ function rgbToHex(r, g, b) {
 }
 
 function rgbToComponents(rgb) {
-  var components = {};
+  let components = {};
 
   rgb = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
   components.r = parseInt(rgb[1]);
