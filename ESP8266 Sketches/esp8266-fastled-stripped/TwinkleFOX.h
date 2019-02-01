@@ -58,9 +58,9 @@ void coolLikeIncandescent( CRGB& c, uint8_t phase) {
 //  does not change over the course of the fade-in, fade-out
 //  of one cycle of the brightness wave function.
 //  The 'high digits' are also used to determine whether this pixel
-//  should light at all during this cycle, based on the twinkleDensity.
+//  should light at all during this cycle, based on the paramInt2.
 CRGB computeOneTwinkle( uint32_t ms, uint8_t salt) {
-  uint16_t ticks = ms >> (8-twinkleSpeed);
+  uint16_t ticks = ms >> (8-paramInt1);
   uint8_t fastcycle8 = ticks;
   uint16_t slowcycle16 = (ticks >> 8) + salt;
   slowcycle16 += sin8( slowcycle16);
@@ -68,7 +68,7 @@ CRGB computeOneTwinkle( uint32_t ms, uint8_t salt) {
   uint8_t slowcycle8 = (slowcycle16 & 0xFF) + (slowcycle16 >> 8);
 
   uint8_t bright = 0;
-  if( ((slowcycle8 & 0x0E)/2) < twinkleDensity) {
+  if( ((slowcycle8 & 0x0E)/2) < paramInt2) {
     bright = attackDecayWave8( fastcycle8);
   }
 

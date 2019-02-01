@@ -55,7 +55,6 @@ uint8_t secondsPerPalette = 10;
 uint8_t gCurrentPaletteNumber = 0;
 uint8_t currentPatternIndex = 0;
 uint8_t currentZoneIndex = 0;
-uint8_t currentPaletteIndex = 0;
 uint8_t autoplay = 0;
 uint8_t autoplayDuration = 10;
 unsigned long autoPlayTimeout = 0;
@@ -101,21 +100,21 @@ const String paletteNames[paletteCount] = {
  };
 
 PatternAndNameList patterns = {
-  { pride,                  "Pride", {0, 1}},
-  { colorWaves,             "Color Waves", {2, 3, 4, 5} },
+  { pride,                  "Pride", {7, 8, 9}},
+  { colorWaves,             "Color Waves", {8, 9} },
 
   // TwinkleFOX patterns
-  { showTwinkles,           "Twinkles", {0} },
+  { showTwinkles,           "Twinkles", {5, 6} },
 
-  { rainbow,                "Rainbow", {0, 1, 5} },
-  { rainbowWithGlitter,     "Rainbow With Glitter", {0, 1} },
-  { rainbowSolid,           "Solid Rainbow", {0, 1} },
-  { confetti,               "Confetti", {0, 1} },
-  { sinelon,                "Sinelon", {0, 1} },
+  { rainbow,                "Rainbow", {10} },
+  { rainbowWithGlitter,     "Rainbow With Glitter", {10} },
+  { rainbowSolid,           "Solid Rainbow", {1} },
+  { confetti,               "Confetti", {0, 12} },
+  { sinelon,                "Sinelon", {0, 1, 12} },
   { bpm,                    "Beat", {0, 1} },
-  { juggle,                 "Juggle", {0, 1} },
-  { fire,                   "Fire", {0, 1} },
-  { water,                  "Water", {0, 1} },
+  { juggle,                 "Juggle", {} },
+  { fire,                   "Fire", {3, 4} },
+  { water,                  "Water", {3, 4} },
 
   { showSolidColor,         "Solid Color" , {0, 1}}
 };
@@ -177,85 +176,35 @@ void setup() {
     webServer.send(200, "text/json", json);
   });
 
-  webServer.on("/fieldValue", HTTP_GET, []() {
-    Serial.println("trying2?");
+  webServer.on("/formParametersValue", HTTP_GET, []() {
     String name = webServer.arg("name");
-    String value = getFieldValue(name, fields, fieldCount);
+    String value = getFieldValue(name, fieldParams, fieldCount);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
-    Serial.print("http get: ");
-    Serial.print(name);
-    Serial.print(" = ");
-    Serial.println(value);
     webServer.send(200, "text/json", value);
   });
 
-  webServer.on("/fieldValue", HTTP_POST, []() {
-    Serial.println("trying?");
+  webServer.on("/formParametersValue", HTTP_POST, []() {
+    String name = webServer.arg("name");
+    String value = webServer.arg("value");
+    String newValue = setFieldValue(name, value, fieldParams, fieldCount);
+    webServer.sendHeader("Access-Control-Allow-Origin", "*");
+    webServer.send(200, "text/json", newValue);
+  });
+  webServer.on("/formGeneralValue", HTTP_GET, []() {
+    String name = webServer.arg("name");
+    String value = getFieldValue(name, fields, fieldCount);
+    webServer.sendHeader("Access-Control-Allow-Origin", "*");
+    webServer.send(200, "text/json", value);
+  });
+
+  webServer.on("/formGeneralValue", HTTP_POST, []() {
     String name = webServer.arg("name");
     String value = webServer.arg("value");
     String newValue = setFieldValue(name, value, fields, fieldCount);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
-    Serial.print("http post: ");
-    Serial.print(name);
-    Serial.print(" = ");
-    Serial.print(value);
-    Serial.print(", ");
-    Serial.println(newValue);
     webServer.send(200, "text/json", newValue);
   });
   
-  webServer.on("/zone", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setZone(value.toInt());
-    sendInt(power);
-  });
-
-  webServer.on("/power", HTTP_POST, []() {
-    Serial.println("you can post here");
-    String value = webServer.arg("value");
-    setPower(value.toInt());
-    sendInt(power);
-  });
-
-  webServer.on("/cooling", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    cooling = value.toInt();
-    broadcastInt("cooling", cooling);
-    sendInt(cooling);
-  });
-
-  webServer.on("/sparking", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    sparking = value.toInt();
-    broadcastInt("sparking", sparking);
-    sendInt(sparking);
-  });
-
-  webServer.on("/speed", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    speed = value.toInt();
-    broadcastInt("speed", speed);
-    sendInt(speed);
-  });
-
-  webServer.on("/twinkleSpeed", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    twinkleSpeed = value.toInt();
-    if(twinkleSpeed < 0) twinkleSpeed = 0;
-    else if (twinkleSpeed > 8) twinkleSpeed = 8;
-    broadcastInt("twinkleSpeed", twinkleSpeed);
-    sendInt(twinkleSpeed);
-  });
-
-  webServer.on("/twinkleDensity", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    twinkleDensity = value.toInt();
-    if(twinkleDensity < 0) twinkleDensity = 0;
-    else if (twinkleDensity > 8) twinkleDensity = 8;
-    broadcastInt("twinkleDensity", twinkleDensity);
-    sendInt(twinkleDensity);
-  });
-
   webServer.on("/solidColor", HTTP_POST, []() {
     String r = webServer.arg("r");
     String g = webServer.arg("g");
@@ -263,49 +212,7 @@ void setup() {
     setSolidColor(r.toInt(), g.toInt(), b.toInt());
     sendString(String(solidColor.r) + "," + String(solidColor.g) + "," + String(solidColor.b));
   });
-
-  webServer.on("/pattern", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setPattern(value.toInt());
-    sendInt(currentPatternIndex);
-  });
-
-  webServer.on("/patternName", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setPatternName(value);
-    sendInt(currentPatternIndex);
-  });
-
-  webServer.on("/palette", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setPalette(value.toInt());
-    sendInt(currentPaletteIndex);
-  });
-
-  webServer.on("/paletteName", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setPaletteName(value);
-    sendInt(currentPaletteIndex);
-  });
-
-  webServer.on("/brightness", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setBrightness(value.toInt());
-    sendInt(brightness);
-  });
-
-  webServer.on("/autoplay", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setAutoplay(value.toInt());
-    sendInt(autoplay);
-  });
-
-  webServer.on("/autoplayDuration", HTTP_POST, []() {
-    String value = webServer.arg("value");
-    setAutoplayDuration(value.toInt());
-    sendInt(autoplayDuration);
-  });
-
+  
   webServer.begin();
   Serial.println("HTTP web server started");
 
@@ -422,39 +329,33 @@ void adjustPattern(bool up) {
   broadcastInt("pattern", currentPatternIndex);
 }
 
-
+//patterns
 void showSolidColor() {
   fill_solid(leds, NUM_LEDS, solidColor);
 }
-
-// Patterns from FastLED example DemoReel100: https://github.com/FastLED/FastLED/blob/master/examples/DemoReel100/DemoReel100.ino
-void rainbow() {
+void rainbow() {        // Patterns from FastLED example DemoReel100: https://github.com/FastLED/FastLED/blob/master/examples/DemoReel100/DemoReel100.ino
   // FastLED's built-in rainbow generator
-  fill_rainbow( leds, NUM_LEDS, gHue, 255 / NUM_LEDS);
+  fill_rainbow( leds, NUM_LEDS, gHue, 255 / paramInt1);
 }
-
 void rainbowWithGlitter() {
   // built-in FastLED rainbow, plus some random sparkly glitter
   rainbow();
-  addGlitter(80);
+  addGlitter(paramInt2);
 }
-
 void rainbowSolid() {
-  fill_solid(leds, NUM_LEDS, CHSV(gHue, 255, 255));
+  fill_solid(leds, NUM_LEDS, CHSV(gHue * paramInt1, 255, 255));
 }
-
 void confetti() {
   // random colored speckles that blink in and fade smoothly
-  fadeToBlackBy( leds, NUM_LEDS, 10);
+  fadeToBlackBy( leds, NUM_LEDS, paramInt2);
   int pos = random16(NUM_LEDS);
   // leds[pos] += CHSV( gHue + random8(64), 200, 255);
   leds[pos] += ColorFromPalette(palettes[currentPaletteIndex], gHue + random8(64));
 }
-
 void sinelon() {
   // a colored dot sweeping back and forth, with fading trails
-  fadeToBlackBy( leds, NUM_LEDS, 20);
-  int pos = beatsin16(speed, 0, NUM_LEDS);
+  fadeToBlackBy( leds, NUM_LEDS, paramInt2);
+  int pos = beatsin16(paramInt1, 0, NUM_LEDS);
   static int prevpos = 0;
   CRGB color = ColorFromPalette(palettes[currentPaletteIndex], gHue, 255);
   if( pos < prevpos ) {
@@ -464,16 +365,14 @@ void sinelon() {
   }
   prevpos = pos;
 }
-
 void bpm() {
   // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-  uint8_t beat = beatsin8( speed, 64, 255);
+  uint8_t beat = beatsin8( paramInt1, 64, 255);
   CRGBPalette16 palette = palettes[currentPaletteIndex];
   for ( int i = 0; i < NUM_LEDS; i++) {
     leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
   }
 }
-
 void juggle() {
   static uint8_t    numdots =   4; // Number of dots in use.
   static uint8_t   faderate =   2; // How long should the trails be. Very low value = longer trails.
@@ -507,25 +406,21 @@ void juggle() {
     curhue += hueinc;
   }
 }
-
 void fire() {
   heatMap(HeatColors_p, true);
 }
-
 void water() {
   heatMap(IceColors_p, false);
 }
-
-// Pride2015 by Mark Kriegsman: https://gist.github.com/kriegsman/964de772d64c502760e5
-void pride() {
+void pride() {        // Pride2015 by Mark Kriegsman: https://gist.github.com/kriegsman/964de772d64c502760e5
   static uint16_t sPseudotime = 0;
   static uint16_t sLastMillis = 0;
   static uint16_t sHue16 = 0;
 
-  uint8_t sat8 = beatsin88(satSpeed * 8, 220, 250);
-  uint8_t brightdepth = beatsin88(brightDepthSpeed * 8, 96, 224);
+  uint8_t sat8 = beatsin88(paramInt1 * 8, 220, 250);
+  uint8_t brightdepth = beatsin88(paramInt2 * 8, 96, 224);
   uint16_t brightnessthetainc16 = beatsin88( 203, (25 * 256), (40 * 256));
-  uint8_t msmultiplier = beatsin88(msmultiplierSpeed * 8, 23, 60);
+  uint8_t msmultiplier = beatsin88(paramInt3 * 8, 23, 60);
 
   uint16_t hue16 = sHue16;//gHue * 256;
   uint16_t hueinc16 = beatsin88(113 * 8, 1, 3000);
@@ -556,16 +451,13 @@ void pride() {
     nblend( leds[pixelnumber], newcolor, 64);
   }
 }
-
 void radialPaletteShift() {
   for (uint16_t i = 0; i < NUM_LEDS; i++) {
     // leds[i] = ColorFromPalette( gCurrentPalette, gHue + sin8(i*16), brightness);
     leds[i] = ColorFromPalette(gCurrentPalette, i + gHue, 255, LINEARBLEND);
   }
 }
-
-// based on FastLED example Fire2012WithPalette: https://github.com/FastLED/FastLED/blob/master/examples/Fire2012WithPalette/Fire2012WithPalette.ino
-void heatMap(CRGBPalette16 palette, bool up) {
+void heatMap(CRGBPalette16 palette, bool up) {        // based on FastLED example Fire2012WithPalette: https://github.com/FastLED/FastLED/blob/master/examples/Fire2012WithPalette/Fire2012WithPalette.ino
   fill_solid(leds, NUM_LEDS, CRGB::Black);
 
   // Add entropy to random number generator; we use a lot of it.
@@ -578,7 +470,7 @@ void heatMap(CRGBPalette16 palette, bool up) {
 
   // Step 1.  Cool down every cell a little
   for ( uint16_t i = 0; i < NUM_LEDS; i++) {
-    heat[i] = qsub8( heat[i],  random8(0, ((cooling * 10) / NUM_LEDS) + 2));
+    heat[i] = qsub8( heat[i],  random8(0, ((paramInt1 * 10) / NUM_LEDS) + 2));
   }
   // Step 2.  Heat from each cell drifts 'up' and diffuses a little
   for ( uint16_t k = NUM_LEDS - 1; k >= 2; k--) {
@@ -586,7 +478,7 @@ void heatMap(CRGBPalette16 palette, bool up) {
   }
 
   // Step 3.  Randomly ignite new 'sparks' of heat near the bottom
-  if ( random8() < sparking ) {
+  if ( random8() < paramInt2 ) {
     int y = random8(7);
     heat[y] = qadd8( heat[y], random8(160, 255) );
   }
@@ -607,27 +499,23 @@ void heatMap(CRGBPalette16 palette, bool up) {
     }
   }
 }
-
 void addGlitter( uint8_t chanceOfGlitter) {
   if ( random8() < chanceOfGlitter) {
     leds[ random16(NUM_LEDS) ] += CRGB::White;
   }
 }
-
 void colorWaves() {
   colorwaves( leds, NUM_LEDS, gCurrentPalette);
 }
-
-// ColorWavesWithPalettes by Mark Kriegsman: https://gist.github.com/kriegsman/8281905786e8b2632aeb
-void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette) {
+void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette) {// ColorWavesWithPalettes by Mark Kriegsman: https://gist.github.com/kriegsman/8281905786e8b2632aeb
   static uint16_t sPseudotime = 0;
   static uint16_t sLastMillis = 0;
   static uint16_t sHue16 = 0;
 
   // uint8_t sat8 = beatsin88( 87, 220, 250);
-  uint8_t brightdepth = beatsin88( 341, 96, 224);
+  uint8_t brightdepth = beatsin88(paramInt2, 96, 224);
   uint16_t brightnessthetainc16 = beatsin88( 203, (25 * 256), (40 * 256));
-  uint8_t msmultiplier = beatsin88(147, 23, 60);
+  uint8_t msmultiplier = beatsin88(paramInt3, 23, 60);
 
   uint16_t hue16 = sHue16;//gHue * 256;
   uint16_t hueinc16 = beatsin88(113, 300, 1500);

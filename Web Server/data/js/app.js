@@ -7,7 +7,7 @@ let postColorTimer = {};
 let postValueTimer = {};
 
 let ignoreColorChange = false;
-let paramsUpdateRequested = false;
+let paramsUpdateRunning = false;
 
 let ws = new ReconnectingWebSocket('ws://' + address + ':81/', ['arduino']);
 ws.close();
@@ -113,14 +113,14 @@ function addNumberField(field, formId) {
     let value = $(this).val();
     input.val(value);
     field.value = value;
-    delayPostValue(field.name, value);
+    delayPostValue(formId, field.name, value);
   });
 
   input.on("change", function() {
     let value = $(this).val();
     slider.val(value);
     field.value = value;
-    delayPostValue(field.name, value);
+    delayPostValue(formId, field.name, value);
   });
 
   $("#" + formId).append(template);
@@ -149,10 +149,10 @@ function addBooleanField(field, formId) {
   btnOff.attr("class", !field.value ? "btn btn-primary" : "btn btn-default");
 
   btnOn.click(function() {
-    setBooleanFieldValue(field, btnOn, btnOff, 1)
+    setBooleanFieldValue(formId, field, btnOn, btnOff, 1)
   });
   btnOff.click(function() {
-    setBooleanFieldValue(field, btnOn, btnOff, 0)
+    setBooleanFieldValue(formId, field, btnOn, btnOff, 0)
   });
 
   $("#" + formId).append(template);
@@ -216,9 +216,8 @@ function addSelectField(field, formId) {
     let value = template.find("#" + id + " option:selected").index();
     if (field.name == "pattern") {
       $("#formParameters").empty();
-      paramsUpdateRequested = true;
     }
-    postValue(field.name, value);
+    postValue(formId, field.name, value);
   });
 
   let previousButton = template.find(".btn-previous");
@@ -233,9 +232,8 @@ function addSelectField(field, formId) {
     select.val(value);
     if (field.name == "pattern") {
       $("#formParameters").empty();
-      paramsUpdateRequested = true;
     }
-    postValue(field.name, value);
+    postValue(formId, field.name, value);
   });
 
   nextButton.click(function() {
@@ -247,14 +245,15 @@ function addSelectField(field, formId) {
     select.val(value);
     if (field.name == "pattern") {
       $("#formParameters").empty();
-      paramsUpdateRequested = true;
     }
-    postValue(field.name, value);
+    postValue(formId, field.name, value);
   });
 
   $("#" + formId).append(template);
 }
 function updateParams() {
+  paramsUpdateRunning = true;
+  console.log("Update Params");
   $("#formParameters").empty();
   $.get(urlBase + "parameters", function(data) {
     $("#status").html("Loading, please wait...");
@@ -282,6 +281,7 @@ function updateParams() {
       inline: true
     });
     $("#status").html("Ready");
+    paramsUpdateRunning = false;
   })
   .fail(function(jqXHR, textStatus, errorThrown) {
     console.log("Unable to connect to the ESP selected")
@@ -479,6 +479,11 @@ function updateFieldValue(name, value) {
 
   } else if (type == "Select") {
     let select = group.find(".form-control");
+    if (name == "pattern") {
+      if (!paramsUpdateRunning) {
+        updateParams();
+      }
+    }
     select.val(value);
   } else if (type == "Color") {
     let input = group.find(".form-control");
@@ -486,37 +491,33 @@ function updateFieldValue(name, value) {
   }
 };
 
-function setBooleanFieldValue(field, btnOn, btnOff, value) {
+function setBooleanFieldValue(formId, field, btnOn, btnOff, value) {
   field.value = value;
 
   btnOn.attr("class", field.value ? "btn btn-primary" : "btn btn-default");
   btnOff.attr("class", !field.value ? "btn btn-primary" : "btn btn-default");
 
-  postValue(field.name, field.value);
+  postValue(formId, field.name, field.value);
 }
 
-function postValue(name, value) {
+function postValue(formId, name, value) {
   $("#status").html("Setting " + name + ": " + value + ", please wait...");
 
   let body = { name: name, value: value };
-
-  $.post(urlBase + name + "?value=" + value, body, function(data) {
+  //change over to field value, test new in browser. sync to github?
+  $.post(urlBase + formId + "Value?name=" + name + "&value=" + value, body, function(data) {
     if (data.name != null) {
       $("#status").html("Set " + name + ": " + data.name);
     } else {
       $("#status").html("Set " + name + ": " + data);
-      if (paramsUpdateRequested) {
-        paramsUpdateRequested = false;
-        updateParams();
-      }
     }
   });
 }
 
-function delayPostValue(name, value) {
+function delayPostValue(formId, name, value) {
   clearTimeout(postValueTimer);
   postValueTimer = setTimeout(function() {
-    postValue(name, value);
+    postValue(formId, name, value);
   }, 300);
 }
 

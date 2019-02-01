@@ -16,7 +16,7 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-typedef String (*FieldSetter)(String);
+typedef void (*FieldSetter)(String);
 typedef String (*FieldGetter)();
 
 const String NumberFieldType = "Number";
@@ -33,39 +33,45 @@ typedef struct Field {
   String type;
   uint8_t min;
   uint8_t max;
+  uint8_t defaultVal;
   FieldGetter getValue;
-  FieldGetter getOptions;
   FieldSetter setValue;
+  FieldGetter getOptions;
 };
 
 typedef Field FieldList[];
 
 FieldList fieldParams = {
-  { "palette", "Palette", SelectFieldType, 0, paletteCount, getPalette, getPalettes },  //0
-  { "speed", "Speed", NumberFieldType, 1, 255, getSpeed },                              //1
-  { "solidColor", "Color", ColorFieldType, 0, 255, getSolidColor },                     //2
-  { "cooling", "Cooling", NumberFieldType, 0, 255, getCooling },                        //3
-  { "sparking", "Sparking", NumberFieldType, 0, 255, getSparking },                     //4
-  { "twinkleSpeed", "Twinkle Speed", NumberFieldType, 0, 8, getTwinkleSpeed },          //5
-  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, getTwinkleDensity }     //6
-//  { "satSpeed", "Sat Speed", NumberFieldType, 1, 255, getSatSpeed }     //7
-//  { "satSpeed", "Sat Speed", NumberFieldType, 1, 255, getSatSpeed }     //7
+  { "palette", "Palette", SelectFieldType, 0, paletteCount, 0, getPalette, setPalette, getPalettes },            //0
+  { "speed", "Speed", NumberFieldType, 1, 255, 30, getParamInt1, setParamInt1 },                                 //1
+  { "solidColor", "Color", ColorFieldType, 0, 255, 0, getSolidColor},                                           //2
+  { "cooling", "Cooling", NumberFieldType, 0, 255, 0, getParamInt1, setParamInt1 },                         //3
+  { "sparking", "Sparking", NumberFieldType, 0, 255, 60, getParamInt2, setParamInt2},                      //4
+  { "twinkleSpeed", "Twinkle Speed", NumberFieldType, 0, 8, 6, getParamInt1, setParamInt1},       //5
+  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, 5, getParamInt2, setParamInt2},//6
+  { "satSpeed", "Saturation Speed", NumberFieldType, 1, 255, 11, getParamInt1, setParamInt1},                      //7
+  { "brightDepthSpeed", "Bright Depth Speed", NumberFieldType, 1, 255, 43, getParamInt2, setParamInt2},//8
+  { "msmultiplierSpeed", "msmultiplier Speed", NumberFieldType, 1, 255, 18, getParamInt3, setParamInt3},//9
+  { "length", "Length", NumberFieldType, 1, 255, 129, getParamInt1, setParamInt1},//10
+  { "glitterChance", "Glitter Chance", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2},//11
+  { "fade", "Fade", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2}//12
 };
 
 FieldList fields = {
-  { "zone", "Zone", SelectHeaderFieldType, 0, zoneCount, getZone, getZones },
-  { "power", "Power", BooleanFieldType, 0, 1, getPower },
-  { "brightness", "Brightness", NumberFieldType, 1, 255, getBrightness },
-  { "pattern", "Pattern", SelectFieldType, 0, patternCount, getPattern, getPatterns },
-  { "autoplay", "Autoplay", SectionFieldType },
-  { "autoplay", "Autoplay", BooleanFieldType, 0, 1, getAutoplay },
-  { "autoplayDuration", "Autoplay Duration", NumberFieldType, 0, 255, getAutoplayDuration },
-  { "parameters", "Parameters", SectionFieldType }
+  { "zone", "Zone", SelectHeaderFieldType, 0, 0, zoneCount, getZone, setZone, getZones },
+  { "power", "Power", BooleanFieldType, 0, 1, 1, getPower, setPower},
+  { "brightness", "Brightness", NumberFieldType, 1, 255, 100, getBrightness, setBrightness },
+  { "pattern", "Pattern", SelectFieldType, 0, patternCount, 0, getPattern, setPattern, getPatterns},
+  { "autoplaySection", "Autoplay", SectionFieldType },
+  { "autoplay", "Autoplay", BooleanFieldType, 0, 1, 0, getAutoplay, setAutoplay},
+  { "autoplayDuration", "Autoplay Duration", NumberFieldType, 1, 255, 60, getAutoplayDuration, setAutoplayDuration},
+  { "parametersSection", "Parameters", SectionFieldType }
 };
 uint8_t fieldCount = ARRAY_SIZE(fields);
 
 Field getField(String name, FieldList fields, uint8_t count) {
-  Serial.println("get field");
+  Serial.print("get field");
+  Serial.println(name);
   for (uint8_t i = 0; i < count; i++) {
     Field field = fields[i];
     if (field.name == name) {
@@ -92,7 +98,9 @@ String setFieldValue(String name, String value, FieldList fields, uint8_t count)
   Serial.println(field.name);
   if (field.setValue) {
     Serial.println("field can set value, returning it");
-    return field.setValue(value);
+    field.setValue(value);
+    broadcastString(field.name, value);
+    return value;
   }
   return String();
 }

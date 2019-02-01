@@ -17,30 +17,29 @@
 */
 
 //param definitions
-uint8_t cooling = 50;
-uint8_t sparking = 60;
-uint8_t speed = 30;
-uint8_t twinkleSpeed = 4;
-uint8_t twinkleDensity = 5;
-uint8_t satSpeed = 87 / 8;
+uint8_t currentPaletteIndex = 0;
 CRGB solidColor = CRGB::Blue;
-uint8_t brightDepthSpeed = 341 / 8;
-uint8_t msmultiplierSpeed = 147 / 8;
 uint8_t hueincSpeed = 113 / 8;
+uint8_t paramInt1 = 0;
+uint8_t paramInt2 = 0;
+uint8_t paramInt3 = 0;
+uint8_t paramInt4 = 0;
 
 //getter and setters
 String getPower() {
   return String(power);
 }
-void setPower(uint8_t value) {
-  power = value == 0 ? 0 : 1;
+void setPower(String value) {
+  uint8_t val = value.toInt();
+  power = val == 0 ? 0 : 1;
   broadcastInt("power", power);
 }
 
 String getBrightness() {
   return String(brightness);
 }
-void setBrightness(uint8_t value) {
+void setBrightness(String val) {
+  uint8_t value = val.toInt();
   if (value > 255)
     value = 255;
   else if (value < 0) value = 0;
@@ -55,17 +54,19 @@ void setBrightness(uint8_t value) {
 String getPattern() {
   return String(currentPatternIndex);
 }
-void setPattern(uint8_t value) {
+void setPattern(String val) {
+  uint8_t value = val.toInt();
   if (value >= patternCount)
     value = patternCount - 1;
   currentPatternIndex = value;
+  
   
   broadcastInt("pattern", currentPatternIndex);
 }
 void setPatternName(String name) {
   for(uint8_t i = 0; i < patternCount; i++) {
     if(patterns[i].name == name) {
-      setPattern(i);
+      setPattern(String(i));
       break;
     }
   }
@@ -86,7 +87,8 @@ String getPatterns() {
 String getPalette() {
   return String(currentPaletteIndex);
 }
-void setPalette(uint8_t value) {
+void setPalette(String val) {
+  uint8_t value = val.toInt();
   if (value >= paletteCount)
     value = paletteCount - 1;
   currentPaletteIndex = value;
@@ -96,7 +98,7 @@ void setPalette(uint8_t value) {
 void setPaletteName(String name) {
   for(uint8_t i = 0; i < paletteCount; i++) {
     if(paletteNames[i] == name) {
-      setPalette(i);
+      setPalette(String(i));
       break;
     }
   }
@@ -117,7 +119,8 @@ String getPalettes() {
 String getZone() {
   return String(currentZoneIndex);
 }
-void setZone(uint8_t value) {
+void setZone(String val) {
+  uint8_t value = val.toInt();
   if (value >= zoneCount)
     value = zoneCount - 1;
   currentZoneIndex = value;
@@ -139,7 +142,8 @@ String getZones() {
 String getAutoplay() {
   return String(autoplay);
 }
-void setAutoplay(uint8_t value) {
+void setAutoplay(String val) {
+  uint8_t value = val.toInt();
   autoplay = value == 0 ? 0 : 1;
   broadcastInt("autoplay", autoplay);
 }
@@ -147,7 +151,8 @@ void setAutoplay(uint8_t value) {
 String getAutoplayDuration() {
   return String(autoplayDuration);
 }
-void setAutoplayDuration(uint8_t value) {
+void setAutoplayDuration(String val) {
+  uint8_t value = val.toInt();
   autoplayDuration = value;
   autoPlayTimeout = millis() + (autoplayDuration * 1000);
 
@@ -159,7 +164,6 @@ String getSolidColor() {
 }
 void setSolidColor(uint8_t r, uint8_t g, uint8_t b) {
   solidColor = CRGB(r, g, b);
-  setPattern(patternCount - 1);
 
   broadcastString("solidColor", String(solidColor.r) + "," + String(solidColor.g) + "," + String(solidColor.b));
 }
@@ -167,22 +171,33 @@ void setSolidColor(CRGB color) {
   setSolidColor(color.r, color.g, color.b);
 }
 
-String getCooling() {
-  return String(cooling);
+
+void setParamInt(uint8_t &paramInt, String val) {     //helper function
+  uint8_t value = val.toInt();
+  paramInt = value;
 }
 
-String getSparking() {
-  return String(sparking);
+String getParamInt1() {
+  return String(paramInt1);
 }
-
-String getSpeed() {
-  return String(speed);
+void setParamInt1(String val) {
+  setParamInt(paramInt1, val);
 }
-
-String getTwinkleSpeed() {
-  return String(twinkleSpeed);
+String getParamInt2() {
+  return String(paramInt2);
 }
-
-String getTwinkleDensity() {
-  return String(twinkleDensity);
+void setParamInt2(String val) {
+  setParamInt(paramInt2, val);
+}
+String getParamInt3() {
+  return String(paramInt3);
+}
+void setParamInt3(String val) {
+  setParamInt(paramInt3, val);
+}
+String getParamInt4() {
+  return String(paramInt4);
+}
+void setParamInt4(String val) {
+  setParamInt(paramInt4, val);
 }
