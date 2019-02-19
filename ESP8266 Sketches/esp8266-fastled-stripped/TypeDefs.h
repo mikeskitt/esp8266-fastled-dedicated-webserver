@@ -20,8 +20,23 @@ typedef struct {
 } PatternAndName;
 typedef PatternAndName PatternAndNameList[];
 
+typedef void (*FieldSetter)(String);
+typedef String (*FieldGetter)();
+typedef struct Field {
+  String name;
+  String label;
+  String type;
+  uint8_t min;
+  uint8_t max;
+  uint8_t defaultVal;
+  FieldGetter getValue;
+  FieldSetter setValue;
+  FieldGetter getOptions;
+};
+typedef Field FieldList[];
 
-//template functions to compile
+
+//template functions to compile, I HATE C++
 void pride();
 void colorWaves();
 void rainbow();
@@ -37,3 +52,6 @@ void showSolidColor();
 void showTwinkles();
 void broadcastInt(String, uint8_t);
 void broadcastString(String, String);
+
+//template variables
+extern FieldList fieldParams;

@@ -59,7 +59,12 @@ void setPattern(String val) {
   if (value >= patternCount)
     value = patternCount - 1;
   currentPatternIndex = value;
-  
+
+  //reset each parameter value to the default for the new pattern
+  for (int i = 0; i < patterns[currentPatternIndex].params.size(); i++) {
+    fieldParams[patterns[currentPatternIndex].params[i]].setValue(String(fieldParams[patterns[currentPatternIndex].params[i]].defaultVal));
+    Serial.println("Changing " + fieldParams[patterns[currentPatternIndex].params[i]].name + " to " + String(fieldParams[patterns[currentPatternIndex].params[i]].defaultVal));
+  }
   
   broadcastInt("pattern", currentPatternIndex);
 }

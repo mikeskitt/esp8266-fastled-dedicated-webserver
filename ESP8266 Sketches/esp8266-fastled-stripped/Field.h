@@ -16,8 +16,6 @@
    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-typedef void (*FieldSetter)(String);
-typedef String (*FieldGetter)();
 
 const String NumberFieldType = "Number";
 const String BooleanFieldType = "Boolean";
@@ -26,20 +24,6 @@ const String SelectHeaderFieldType = "SelectHeader";
 const String SelectButtonFieldType = "SelectButton";
 const String ColorFieldType = "Color";
 const String SectionFieldType = "Section";
-
-typedef struct Field {
-  String name;
-  String label;
-  String type;
-  uint8_t min;
-  uint8_t max;
-  uint8_t defaultVal;
-  FieldGetter getValue;
-  FieldSetter setValue;
-  FieldGetter getOptions;
-};
-
-typedef Field FieldList[];
 
 FieldList fieldParams = {
   { "palette", "Palette", SelectFieldType, 0, paletteCount, 0, getPalette, setPalette, getPalettes },            //0
@@ -56,6 +40,7 @@ FieldList fieldParams = {
   { "glitterChance", "Glitter Chance", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2},//11
   { "fade", "Fade", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2}//12
 };
+uint8_t fieldParamsCount = ARRAY_SIZE(fieldParams);
 
 FieldList fields = {
   { "zone", "Zone", SelectHeaderFieldType, 0, 0, zoneCount, getZone, setZone, getZones },
@@ -83,21 +68,18 @@ Field getField(String name, FieldList fields, uint8_t count) {
 }
 
 String getFieldValue(String name, FieldList fields, uint8_t count) {
-  Serial.println("get field value");
   Field field = getField(name, fields, count);
   if (field.getValue) {
-    Serial.println("field can get value, returning it");
     return field.getValue();
   }
   return String();
 }
 
 String setFieldValue(String name, String value, FieldList fields, uint8_t count) {
-  Serial.println("set field value");
   Field field = getField(name, fields, count);
   Serial.println(field.name);
   if (field.setValue) {
-    Serial.println("field can set value, returning it");
+    Serial.println("field " + field.name + "set value to " + value);
     field.setValue(value);
     broadcastString(field.name, value);
     return value;

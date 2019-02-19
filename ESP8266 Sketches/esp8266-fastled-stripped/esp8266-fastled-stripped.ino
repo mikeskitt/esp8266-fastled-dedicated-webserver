@@ -16,6 +16,10 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+ /*
+  * NOTE TO SELF: if wifi *randomly* quits working, upload with erase sketch + wifi settings. caching issue.
+  */
+
 #define FASTLED_INTERRUPT_RETRY_COUNT 0
 #define FRAMES_PER_SECOND 40
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
@@ -23,7 +27,7 @@
 #define COLOR_ORDER   GRB
 
 #include <FastLED.h>
-#define DATA_PIN      3
+#define DATA_PIN      2
 #include <vector>
 #include <ESP8266WiFi.h>
 #include <ESP8266WiFiMulti.h>
@@ -178,7 +182,7 @@ void setup() {
 
   webServer.on("/formParametersValue", HTTP_GET, []() {
     String name = webServer.arg("name");
-    String value = getFieldValue(name, fieldParams, fieldCount);
+    String value = getFieldValue(name, fieldParams, fieldParamsCount);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
     webServer.send(200, "text/json", value);
   });
@@ -186,7 +190,7 @@ void setup() {
   webServer.on("/formParametersValue", HTTP_POST, []() {
     String name = webServer.arg("name");
     String value = webServer.arg("value");
-    String newValue = setFieldValue(name, value, fieldParams, fieldCount);
+    String newValue = setFieldValue(name, value, fieldParams, fieldParamsCount);
     webServer.sendHeader("Access-Control-Allow-Origin", "*");
     webServer.send(200, "text/json", newValue);
   });
@@ -236,7 +240,10 @@ void loop() {
     FastLED.delay(1000 / FRAMES_PER_SECOND);
     return;
   }
-
+  /*EVERY_N_SECONDS(2) {
+     Serial.print( F("Heap: ") );
+     Serial.println(system_get_free_heap_size());
+  }*/
   // change to a new cpt-city gradient palette
   EVERY_N_SECONDS( secondsPerPalette ) {
     gCurrentPaletteNumber = addmod8( gCurrentPaletteNumber, 1, gGradientPaletteCount);
@@ -401,7 +408,6 @@ void juggle() {
   fadeToBlackBy(leds, NUM_LEDS, faderate);
   for ( int i = 0; i < numdots; i++) {
     //beat16 is a FastLED 3.1 function
-    Serial.println("yea");
     leds[beatsin16(basebeat + i + numdots, 0, NUM_LEDS)] += CHSV(gHue + curhue, thissat, thisbright);
     curhue += hueinc;
   }
@@ -423,7 +429,7 @@ void pride() {        // Pride2015 by Mark Kriegsman: https://gist.github.com/kr
   uint8_t msmultiplier = beatsin88(paramInt3 * 8, 23, 60);
 
   uint16_t hue16 = sHue16;//gHue * 256;
-  uint16_t hueinc16 = beatsin88(113 * 8, 1, 3000);
+  uint16_t hueinc16 = beatsin88(113, 1, 3000);
 
   uint16_t ms = millis();
   uint16_t deltams = ms - sLastMillis ;
