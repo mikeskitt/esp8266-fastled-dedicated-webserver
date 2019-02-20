@@ -37,7 +37,9 @@ Web App
 
 Patterns are requested by the app from the ESP8266, so as new patterns are added, they're automatically listed in the app.
 
-The web app is stored on the local server. The server files are found in the Web Server root directory.
+The web app is stored on the local server. The server files are found in the [Web Server root directory](https://github.com/Tiuipuv/esp8266-fastled-dedicated-webserver/tree/master/Web%20Server).
+
+Audio services (currently in 'Alpha', not fully functional) are found in the [Audio Server root directory](https://github.com/Tiuipuv/esp8266-fastled-dedicated-webserver/tree/master/Audio%20Server).
 
 The web app is a single page app that uses [jQuery](https://jquery.com) and [Bootstrap](http://getbootstrap.com).  It has buttons for On/Off, a slider for brightness, a pattern selector, and a color picker (using [jQuery MiniColors](http://labs.abeautifulsite.net/jquery-minicolors)).  Event handlers for the controls are wired up, so you don't have to click a 'Send' button after making changes.  The brightness slider and the color picker use a delayed event handler, to prevent from flooding the ESP8266 web server with too many requests too quickly.
 
