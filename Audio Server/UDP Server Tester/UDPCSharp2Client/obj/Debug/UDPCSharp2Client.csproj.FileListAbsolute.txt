@@ -1,6 +1,0 @@
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.exe.config
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.exe
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.pdb
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.csproj.CoreCompileInputs.cache
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.exe
-C:\Users\tiuip\source\repos\UDPCSharp2Client\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.pdb

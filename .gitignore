@@ -3,3 +3,5 @@ Secret.h
 /**/.vscode/*
 node_modules
 /**/node_modules/*
+.vs/
+obj/
