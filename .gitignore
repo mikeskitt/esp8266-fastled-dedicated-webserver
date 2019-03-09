@@ -6,3 +6,4 @@ node_modules
 .vs/
 /**/ScottPlotMicrophoneFFT/obj/
 /**/ScottPlotMicrophoneFFT/publish/
+/**/ScottPlotMicrophoneFFT/bin/
