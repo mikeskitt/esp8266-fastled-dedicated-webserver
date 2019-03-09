@@ -25,6 +25,11 @@ uint8_t paramInt2 = 0;
 uint8_t paramInt3 = 0;
 uint8_t paramInt4 = 0;
 
+void setParamInt(uint8_t &paramInt, String val) {     //helper function
+  uint8_t value = val.toInt();
+  paramInt = value;
+}
+
 //getter and setters
 String getPower() {
   return String(power);
@@ -60,12 +65,27 @@ void setPattern(String val) {
     value = patternCount - 1;
   currentPatternIndex = value;
 
+  //stop listening to Udp packets
+  audioGain = 0;
+  shift1 = 0;
+  Udp.flush();
+  Udp.stop();
   //reset each parameter value to the default for the new pattern
   for (int i = 0; i < patterns[currentPatternIndex].params.size(); i++) {
-    fieldParams[patterns[currentPatternIndex].params[i]].setValue(String(fieldParams[patterns[currentPatternIndex].params[i]].defaultVal));
-    Serial.println("Changing " + fieldParams[patterns[currentPatternIndex].params[i]].name + " to " + String(fieldParams[patterns[currentPatternIndex].params[i]].defaultVal));
+    int paramIndex = patterns[currentPatternIndex].params[i];
+    if (fieldParams[paramIndex].setValue) {
+      fieldParams[paramIndex].setValue(String(fieldParams[paramIndex].defaultVal));
+      Serial.println("Changing " + fieldParams[paramIndex].name + " to " + String(fieldParams[paramIndex].defaultVal));
+    }
   }
-  
+  if (audioGain > 0) {
+    if (!Udp.beginMulticast(WiFi.localIP(), multicastIpAddr, multicastPort)) {
+      Serial.println("Error: Could not establish a UDP listener");
+    }
+    else {
+      Serial.println("UDP listener started");
+    }
+  }
   broadcastInt("pattern", currentPatternIndex);
 }
 void setPatternName(String name) {
@@ -175,13 +195,12 @@ void setSolidColor(uint8_t r, uint8_t g, uint8_t b) {
 void setSolidColor(CRGB color) {
   setSolidColor(color.r, color.g, color.b);
 }
-
-
-void setParamInt(uint8_t &paramInt, String val) {     //helper function
-  uint8_t value = val.toInt();
-  paramInt = value;
+String getAudioGain() {
+  return String(audioGain);
 }
-
+void setAudioGain(String val) {
+  setParamInt(audioGain, val);
+}
 String getParamInt1() {
   return String(paramInt1);
 }

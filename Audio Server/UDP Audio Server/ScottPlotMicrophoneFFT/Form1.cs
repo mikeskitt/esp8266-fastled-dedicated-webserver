@@ -15,16 +15,16 @@ namespace ScottPlotMicrophoneFFT
     {
 
         // MICROPHONE ANALYSIS SETTINGS
-        private int RATE = 44100; // sample rate of the sound card
-        private int BUFFERSIZE = (int)Math.Pow(2, 9); // must be a multiple of 2
-        private byte[] udpBuffer = null;
+        private int RATE = 40960; // sample rate of the sound card, for 40 hz increments, use 40960
+        private int BUFFERSIZE = (int)Math.Pow(2, 11); // must be a multiple of 2 for 40 hz increments, use 2^11
+		private byte[] udpBuffer = null;
         private string multicastIP = "239.0.0.222";
         private int multicastPort = 2222;
-        private int udpBroadcastRate = 50;
+        private int udpBroadcastRate = 30;
 		private int frameCounter = 0;
-		private double[] fftReal;
+		double[] fftReal;
 
-        public static void DisplayTimeEvent(object source, ElapsedEventArgs e)
+		public static void DisplayTimeEvent(object source, ElapsedEventArgs e)
         {
             // code here will run every second
         }
@@ -60,21 +60,29 @@ namespace ScottPlotMicrophoneFFT
         }
 
         public void sendUdpData(object source, ElapsedEventArgs e)
-        {
-            UdpClient udpclient = new UdpClient();
-            IPAddress multicastaddress = IPAddress.Parse(multicastIP);
+		{
+			UdpClient udpclient = new UdpClient();
+			IPAddress multicastaddress = IPAddress.Parse(multicastIP);
             IPEndPoint remoteEndPoint = new IPEndPoint(multicastaddress, multicastPort);
             Random rnd = new Random();
             int num = rnd.Next();
 			//audio packet
 			AudioPacket audio = new AudioPacket();
 			//BUFFERSIZE / BYTES_PER_POINT / 2;
-			audio.low = Math.Round(Enumerable.Range(0, fftReal.Length / 80).Select(i => fftReal[i]).Average(), 4) * 1;
+			/*audio.low80hz = Math.Round(Enumerable.Range(0, fftReal.Length / 80).Select(i => fftReal[i]).Average(), 4) * 1;
 			audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 80, fftReal.Length / 4).Select(i => fftReal[i]).Average(), 4) * 2;
 			audio.high = Math.Round(Enumerable.Range(fftReal.Length / 4, 3 * (fftReal.Length / 4)).Select(i => fftReal[i]).Average(), 4) * 4;
-			string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.Indented);
-			udpBuffer = Encoding.Unicode.GetBytes(jsonAudio);
-            udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+			string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
+			udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);*/
+			audio.low40hz = Math.Round(fftReal[1] * 2 * 10, 4);
+			audio.low80hz = Math.Round(fftReal[2] * 2 * 10, 4);
+			audio.low120hz = Math.Round(fftReal[3] * 2 * 10, 4);
+			audio.low160hz = Math.Round(fftReal[4] * 2 * 10, 4);
+			audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 40).Select(i => fftReal[i]).Average(), 4) * 6 * 8;
+			audio.high = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 6).Select(i => fftReal[i]).Average(), 4) * 0 * 8;
+			string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
+			udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
+			udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
         }
 
         public void SetupGraphLabels()
@@ -119,7 +127,7 @@ namespace ScottPlotMicrophoneFFT
             timerReplot.Enabled = false;
             PlotLatestData();
 			++frameCounter;
-			lblStatus.Text = $"Frame counter: {frameCounter}";
+			lblStatus.Text = $"Frame counter: {numberOfDraws}";
 
 			timerReplot.Enabled = true;
         }
@@ -190,7 +198,7 @@ namespace ScottPlotMicrophoneFFT
             }
 
             //scottPlotUC1.PlotSignal(Ys, RATE);
-
+			
             numberOfDraws += 1;
 
             // this reduces flicker and helps keep the program responsive

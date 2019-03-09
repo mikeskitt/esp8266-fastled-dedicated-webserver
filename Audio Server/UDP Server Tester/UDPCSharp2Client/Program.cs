@@ -27,7 +27,7 @@ internal class Program
         {
 			count++;
             Byte[] data = client.Receive(ref localEp);
-			string strData = Encoding.Unicode.GetString(data);
+			string strData = Encoding.UTF8.GetString(data);
 			Console.SetCursorPosition(0, 0);
 			if (count % 30 == 0)
 			{

@@ -26,19 +26,22 @@ const String ColorFieldType = "Color";
 const String SectionFieldType = "Section";
 
 FieldList fieldParams = {
-  { "palette", "Palette", SelectFieldType, 0, paletteCount, 0, getPalette, setPalette, getPalettes },            //0
-  { "speed", "Speed", NumberFieldType, 1, 255, 30, getParamInt1, setParamInt1 },                                 //1
+  { "palette", "Palette", SelectFieldType, 0, paletteCount, 0, getPalette, setPalette, getPalettes },           //0
+  { "speed", "Speed", NumberFieldType, 1, 255, 30, getParamInt1, setParamInt1 },                                //1
   { "solidColor", "Color", ColorFieldType, 0, 255, 0, getSolidColor},                                           //2
-  { "cooling", "Cooling", NumberFieldType, 0, 255, 0, getParamInt1, setParamInt1 },                         //3
-  { "sparking", "Sparking", NumberFieldType, 0, 255, 60, getParamInt2, setParamInt2},                      //4
-  { "twinkleSpeed", "Twinkle Speed", NumberFieldType, 0, 8, 6, getParamInt1, setParamInt1},       //5
-  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, 5, getParamInt2, setParamInt2},//6
-  { "satSpeed", "Saturation Speed", NumberFieldType, 1, 255, 11, getParamInt1, setParamInt1},                      //7
-  { "brightDepthSpeed", "Bright Depth Speed", NumberFieldType, 1, 255, 43, getParamInt2, setParamInt2},//8
-  { "msmultiplierSpeed", "msmultiplier Speed", NumberFieldType, 1, 255, 18, getParamInt3, setParamInt3},//9
-  { "length", "Length", NumberFieldType, 1, 255, 129, getParamInt1, setParamInt1},//10
-  { "glitterChance", "Glitter Chance", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2},//11
-  { "fade", "Fade", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2}//12
+  { "cooling", "Cooling", NumberFieldType, 0, 255, 80, getParamInt1, setParamInt1 },                             //3
+  { "sparking", "Sparking", NumberFieldType, 0, 255, 80, getParamInt2, setParamInt2},                           //4
+  { "twinkleSpeed", "Twinkle Speed", NumberFieldType, 0, 8, 6, getParamInt1, setParamInt1},                     //5
+  { "twinkleDensity", "Twinkle Density", NumberFieldType, 0, 8, 5, getParamInt2, setParamInt2},                 //6
+  { "satSpeed", "Saturation Speed", NumberFieldType, 1, 255, 11, getParamInt1, setParamInt1},                   //7
+  { "brightDepthSpeed", "Bright Depth Speed", NumberFieldType, 1, 255, 43, getParamInt2, setParamInt2},         //8
+  { "msmultiplierSpeed", "msmultiplier Speed", NumberFieldType, 1, 255, 18, getParamInt3, setParamInt3},        //9
+  { "length", "Length", NumberFieldType, 1, 255, 129, getParamInt1, setParamInt1},                              //10
+  { "glitterChance", "Glitter Chance", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2},                //11
+  { "fade", "Fade", NumberFieldType, 1, 255, 80, getParamInt2, setParamInt2},                                   //12
+  { "audioGain", "Audio Gain", NumberFieldType, 0, 255, 100, getAudioGain, setAudioGain},                       //13
+  { "saturation", "Saturation", NumberFieldType, 0, 255, 255, getParamInt3, setParamInt3}/*,                       //14
+  { "freqBand", "Frequency Band", SelectHeaderFieldType, 0, 0, zoneCount, getFrequencyBand, setFrequencyBand, getFrequencyBands }//15*/
 };
 uint8_t fieldParamsCount = ARRAY_SIZE(fieldParams);
 
@@ -55,7 +58,7 @@ FieldList fields = {
 uint8_t fieldCount = ARRAY_SIZE(fields);
 
 Field getField(String name, FieldList fields, uint8_t count) {
-  Serial.print("get field");
+  Serial.print("get field ");
   Serial.println(name);
   for (uint8_t i = 0; i < count; i++) {
     Field field = fields[i];
@@ -79,7 +82,7 @@ String setFieldValue(String name, String value, FieldList fields, uint8_t count)
   Field field = getField(name, fields, count);
   Serial.println(field.name);
   if (field.setValue) {
-    Serial.println("field " + field.name + "set value to " + value);
+    Serial.println("field " + field.name + " set value to " + value);
     field.setValue(value);
     broadcastString(field.name, value);
     return value;

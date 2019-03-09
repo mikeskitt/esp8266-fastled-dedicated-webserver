@@ -20,19 +20,25 @@
   * NOTE TO SELF: if wifi *randomly* quits working, upload with erase sketch + wifi settings. caching issue.
   */
 
-#define FASTLED_INTERRUPT_RETRY_COUNT 0
+#define FASTLED_INTERRUPT_RETRY_COUNT 1
 #define FRAMES_PER_SECOND 40
 #define ARRAY_SIZE(A) (sizeof(A) / sizeof((A)[0]))
 #define LED_TYPE      WS2812B
 #define COLOR_ORDER   GRB
 
+//1 living, 2 kitchen, 3 pong, 4 foosball room, 5 party room, 6 stairs, 7 lighthouse, 20 calibration
+//254       253         252    251              249           248       247           240
+#define CURRENT_ROOM 7
+
 #include <FastLED.h>
 #define DATA_PIN      2
 #include <vector>
 #include <ESP8266WiFi.h>
-#include <ESP8266WiFiMulti.h>
+#include <WiFiUdp.h>
+//#include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
+#include <ArduinoJson.h>  //v6.8 beta works
 #include "GradientPalettes.h"
 #include "TypeDefs.h"
 #include "Secret.h"
@@ -41,10 +47,16 @@
 
 ESP8266WebServer webServer(80);
 WebSocketsServer webSocketsServer = WebSocketsServer(81);
-ESP8266WiFiMulti wifiMulti;
+//ESP8266WiFiMulti wifiMulti; //!going to regular wifi so it actually connects every time. wifiMulti BUG?
+WiFiUDP Udp;
+char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // buffer to hold incoming udp packet,
+
+DynamicJsonDocument doc(1024);
 
 IPAddress gateway(192, 168, 1, 1); // set gateway to match your network
 IPAddress subnet(255, 255, 255, 0); // set subnet mask to match your network
+const IPAddress multicastIpAddr = IPAddress(239,0,0,222); // multicast ip address to match audio server
+unsigned int multicastPort = 2222;  // local multicast port to listen on
 
 CRGB leds[NUM_LEDS];
 CRGBPalette16 gCurrentPalette( CRGB::Black);
@@ -61,8 +73,21 @@ uint8_t currentPatternIndex = 0;
 uint8_t currentZoneIndex = 0;
 uint8_t autoplay = 0;
 uint8_t autoplayDuration = 10;
+uint8_t audioGain = 0;
 unsigned long autoPlayTimeout = 0;
-uint8_t gHue = 0;
+unsigned long gHue = 0;
+
+#define AUDIO_DROP_RATE 20
+double lowFreq = 0;
+double low40Freq = 0;
+double low80Freq = 0;
+double low120Freq = 0;
+double low160Freq = 0;
+double midFreq = 0;
+double highFreq = 0;
+double* currentFreqBand = &lowFreq;
+uint8_t bass;
+int shift1 = 0;                                     //for large jumps in loudness
 
 const CRGBPalette16 palettes[] = {
   RainbowColors_p,
@@ -108,11 +133,11 @@ PatternAndNameList patterns = {
   { colorWaves,             "Color Waves", {8, 9} },
 
   // TwinkleFOX patterns
-  { showTwinkles,           "Twinkles", {5, 6} },
+  { showTwinkles,           "Twinkles", {0, 5, 6} },
 
-  { rainbow,                "Rainbow", {10} },
-  { rainbowWithGlitter,     "Rainbow With Glitter", {10} },
-  { rainbowSolid,           "Solid Rainbow", {1} },
+  { rainbow,                "Rainbow", {1, 10} },
+  { rainbowWithGlitter,     "Rainbow With Glitter", {1, 10} },
+  { rainbowSolid,           "Solid Rainbow", {1, 14} },
   { confetti,               "Confetti", {0, 12} },
   { sinelon,                "Sinelon", {0, 1, 12} },
   { bpm,                    "Beat", {0, 1} },
@@ -120,7 +145,23 @@ PatternAndNameList patterns = {
   { fire,                   "Fire", {3, 4} },
   { water,                  "Water", {3, 4} },
 
-  { showSolidColor,         "Solid Color" , {0, 1}}
+  { showSolidColor,         "Solid Color" , {2}},
+
+  { audioSolidColor,        "(Audio) Solid Color", {2, 13}},
+  { audioRainbowEdge,       "(Audio) Rainbow Edge", {13}},
+  { audioFadeEdge,          "(Audio) Fade Edge", {13}},
+  { audioFadeRedEdge,       "(Audio) Red Edge", {13}},
+  { audioRedWhiteEdge,      "(Audio) White Edge", {13}},
+  { audioRainbowMid,        "(Audio) Rainbow Mid", {13}},
+  { audioFadeMid,           "(Audio) Fade Mid", {13}},
+  { audioFadeRedMid,        "(Audio) Red Mid", {13}},
+  { audioRedWhiteMid,       "(Audio) White Mid", {13}},
+  { audioRainbowSpeed,      "(Audio) Rainbow Speed", {13}},
+  { audioRainbowSpeedBack,  "(Audio) Rainbow Speed 2", {13}},
+  { audioRainbowSpeedLong,  "(Audio) Rainbow Speed Long", {13}},
+  { audioRainbowSpeedLongBack,"(Audio) Rainbow Speed Long 2", {13}},
+  { audioConfetti,          "(Audio) Confetti", {13}},
+  { audioConfettiDense,     "(Audio) Confetti Dense", {13}}
 };
 const uint8_t patternCount = ARRAY_SIZE(patterns);
 
@@ -129,6 +170,7 @@ const uint8_t patternCount = ARRAY_SIZE(patterns);
 #include "TwinkleFOX.h"
 
 void setup() {
+  Serial.setDebugOutput(true);
   Serial.begin(115200);
   fill_solid(leds, NUM_LEDS, CRGB::Black);
   FastLED.show();
@@ -148,10 +190,13 @@ void setup() {
   Serial.printf("Connecting to %s\n", wifiAPs[0].name);
 
   int count = 2;
-  for (int i = 0; i < apCount; i++) {
+  /*for (int i = 0; i < apCount; i++) {
     wifiMulti.addAP(wifiAPs[i].name, wifiAPs[i].password);
   }
-  while (wifiMulti.run() != WL_CONNECTED) {
+  while (wifiMulti.run() != WL_CONNECTED) {*/
+  WiFi.disconnect();
+  WiFi.begin(wifiAPs[0].name, wifiAPs[0].password);
+  while(WiFi.status() != WL_CONNECTED) {
     Serial.print(".");
     for (int i = 0; i < 5;i++) {
       count++;
@@ -223,6 +268,10 @@ void setup() {
   webSocketsServer.begin();
   webSocketsServer.onEvent(webSocketEvent);
   Serial.println("Web socket server started");
+  
+  Udp.beginMulticast(WiFi.localIP(), multicastIpAddr, multicastPort);
+  Serial.printf("Now listening to mutlicast IP %s UDP port %d\n", multicastIpAddr.toString().c_str(), multicastPort);
+  Udp.stop();
 
   autoPlayTimeout = millis() + (autoplayDuration * 1000);
 }
@@ -233,17 +282,70 @@ void loop() {
 
   webSocketsServer.loop();
   webServer.handleClient();
-
+  int packetSize = Udp.parsePacket();
+  if (packetSize) {
+    // read the packet into packetBufffer
+    Udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+    //Serial.println(String(packetBuffer)); //always print out before, deserialize destroys
+    DeserializationError error = deserializeJson(doc, packetBuffer);
+    if (error) {
+      Serial.print("Error: Bad parse: ");
+      Serial.println(error.c_str());
+    }
+    else {
+      
+      int temp = doc["low40hz"];
+      temp *= (audioGain / 255.0);
+      if (temp > low40Freq - AUDIO_DROP_RATE) low40Freq = temp;
+      else low40Freq -= AUDIO_DROP_RATE;
+      
+      temp = doc["low80hz"];
+      temp *= (audioGain / 255.0);
+      if (temp > low80Freq - AUDIO_DROP_RATE) low80Freq = temp;
+      else low80Freq -= AUDIO_DROP_RATE;
+      
+      temp = doc["low120hz"];
+      temp *= (audioGain / 255.0);
+      if (temp > low120Freq - AUDIO_DROP_RATE) low120Freq = temp;
+      else low120Freq -= AUDIO_DROP_RATE;
+      
+      temp = doc["low160hz"];
+      temp *= (audioGain / 255.0);
+      if (temp > low160Freq - AUDIO_DROP_RATE) low160Freq = temp;
+      else low160Freq -= AUDIO_DROP_RATE;
+      
+      temp = doc["mid"];
+      temp *= (audioGain / 255.0);
+      if (temp > midFreq - AUDIO_DROP_RATE) midFreq = temp;
+      else midFreq -= AUDIO_DROP_RATE;
+      
+      temp = doc["high"];
+      temp *= (audioGain / 255.0);
+      if (temp > highFreq - AUDIO_DROP_RATE) highFreq = temp;
+      else highFreq -= AUDIO_DROP_RATE;
+      
+      int previousLow = lowFreq;
+      lowFreq = low40Freq + low80Freq + low120Freq + low160Freq / 4;
+      if (lowFreq - previousLow > 30) shift1 += (lowFreq - previousLow - 30) / 3; //set the shift higher on large bass hits
+      
+      constrainDouble(lowFreq, 0, NUM_LEDS / 2);
+      constrainDouble(low40Freq, 0, 255);
+      constrainDouble(low80Freq, 0, 255);
+      constrainDouble(low120Freq, 0, 255);
+      constrainDouble(low160Freq, 0, 255);
+      constrainDouble(midFreq, 0, 255);
+      constrainDouble(highFreq, 0, 255);
+    }
+  }
   if (power == 0) {
     fill_solid(leds, NUM_LEDS, CRGB::Black);
     FastLED.show();
-    FastLED.delay(1000 / FRAMES_PER_SECOND);
     return;
   }
-  /*EVERY_N_SECONDS(2) {
+  EVERY_N_SECONDS(2) {
      Serial.print( F("Heap: ") );
      Serial.println(system_get_free_heap_size());
-  }*/
+  }
   // change to a new cpt-city gradient palette
   EVERY_N_SECONDS( secondsPerPalette ) {
     gCurrentPaletteNumber = addmod8( gCurrentPaletteNumber, 1, gGradientPaletteCount);
@@ -335,8 +437,16 @@ void adjustPattern(bool up) {
     
   broadcastInt("pattern", currentPatternIndex);
 }
-
+void constrainDouble(double &value, int lowerBound, int upperBound) {
+  if (value > upperBound) {
+    value = upperBound;
+  }
+  else if (value < lowerBound) {
+    value = lowerBound;
+  }
+}
 //patterns
+
 void showSolidColor() {
   fill_solid(leds, NUM_LEDS, solidColor);
 }
@@ -350,7 +460,7 @@ void rainbowWithGlitter() {
   addGlitter(paramInt2);
 }
 void rainbowSolid() {
-  fill_solid(leds, NUM_LEDS, CHSV(gHue * paramInt1, 255, 255));
+  fill_solid(leds, NUM_LEDS, CHSV(gHue * (paramInt1 / 3), (paramInt3), 255));
 }
 void confetti() {
   // random colored speckles that blink in and fade smoothly
@@ -560,4 +670,189 @@ void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette) {// C
     pixelnumber = (numleds - 1) - pixelnumber;
     nblend( ledarray[pixelnumber], newcolor, 128);
   }
+}
+
+//audio anims
+
+void audioSolidColor() {
+  fill_solid(leds, NUM_LEDS, CRGB(lowFreq, 0, 0));
+}
+
+void audioRainbowEdge() {
+  //update background of both
+  for (int dot = 0; dot < NUM_LEDS; dot++) {
+    leds[dot] = CHSV(lowFreq * 2, 200, 35);
+    //leds2[dot] = CHSV((lowFreq * 2) + 128, 200, 35);
+  }
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[dot - 1] = CHSV((dot * 4), 255, 255);
+    //leds2[dot - 1] = CHSV((dot*2.3) + (gHue)+128, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS - dot] = CHSV((dot * 4), 255, 255);
+    //leds2[NUM_LEDS - dot] = CHSV((dot)+(gHue)+128, 255, 255);
+  }
+}
+void audioFadeEdge() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[dot - 1] = CHSV(shift1, 255, 255);
+    //leds2[dot - 1] = CHSV(shift1 + 127, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS - dot] = CHSV(shift1 + 63, 255, 255);
+    //leds2[NUM_LEDS - dot] = CHSV(shift1 + 191, 255, 255);
+  }
+}
+void audioFadeRedEdge() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+
+  if (shift1 > 0) {
+    shift1 /= 1.1;
+  }
+  if (shift1 > 127) {
+    shift1 = 127;
+  }
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[dot - 1] = CRGB(255, shift1 * 2, shift1 * 2);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, shift1, shift1);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS - dot] = CRGB(255, shift1 * 2, shift1 * 2);
+    //leds2[NUM_LEDS / 2 + dot] = CRGB(255, shift1, shift1);
+  }
+}
+void audioRedWhiteEdge() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+ 
+  fill_solid(leds, NUM_LEDS, CRGB(165, 0, 0));
+  //fill_solid(leds2, NUM_LEDS, CRGB(165, 0, 0));
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[dot - 1] = CRGB(255, 255, 255);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS - dot] = CRGB(255, 255, 255);
+    //leds2[NUM_LEDS / 2 + dot] = CRGB(255, 255, 255);
+  }
+}
+
+void audioRainbowMid() {
+  //update all led background
+  for (int dot = 0; dot < NUM_LEDS; dot++) {
+    leds[dot] = CHSV(lowFreq * 2, 200, 35);
+    //leds2[dot] = CHSV((lowFreq * 2) + 128, 200, 35);
+  }
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 - (dot - 1)] = CHSV((dot * 4), 255, 255);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CHSV((dot*2.3) + (gHue)+128, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 + dot] = CHSV((dot * 4), 255, 255);
+    //leds2[NUM_LEDS / 2 + dot] = CHSV((dot)+(gHue)+128, 255, 255);
+  }
+}
+void audioFadeMid() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 - (dot - 1)] = CHSV(shift1, 255, 255);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CHSV(shift1 + 127, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 + dot] = CHSV(shift1 + 63, 255, 255);
+    //leds2[NUM_LEDS / 2 + dot] = CHSV(shift1 + 191, 255, 255);
+  }
+}
+void audioFadeRedMid() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+
+  if (shift1 > 0) {
+    shift1 /= 1.1;
+  }
+  if (shift1 > 127) {
+    shift1 = 127;
+  }
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, shift1 * 2, shift1 * 2);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, shift1, shift1);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 + dot] = CRGB(255, shift1 * 2, shift1 * 2);
+    //leds2[NUM_LEDS / 2 + dot] = CRGB(255, shift1, shift1);
+  }
+}
+void audioRedWhiteMid() {
+  //fade effect
+  fadeToBlackBy(leds, NUM_LEDS, 30);
+  //fadeToBlackBy(leds2, NUM_LEDS, 30);
+
+  fill_solid(leds, NUM_LEDS, CRGB(165, 0, 0));
+  //fill_solid(leds2, NUM_LEDS, CRGB(165, 0, 0));
+  //update near (left) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, 255, 255);
+    //leds2[NUM_LEDS / 2 - (dot - 1)] = CRGB(255, 255, 255);
+  }
+  //update far (right) side
+  for (int dot = 1; dot < lowFreq; dot++) {
+    leds[NUM_LEDS / 2 + dot] = CRGB(255, 255, 255);
+    //leds2[NUM_LEDS / 2 + dot] = CRGB(255, 255, 255);
+  }
+}
+
+void audioRainbowSpeed() {
+  gHue += lowFreq / 2 + 1;
+  fill_rainbow(leds, NUM_LEDS, (gHue), 7);
+}
+void audioRainbowSpeedBack() {
+  gHue += lowFreq / 2 - 5;
+  fill_rainbow(leds, NUM_LEDS, (gHue), 7);
+}
+void audioRainbowSpeedLong() {
+  gHue += lowFreq / 3 + 1;
+  fill_rainbow(leds, NUM_LEDS, (gHue), 2);
+}
+void audioRainbowSpeedLongBack() {
+  gHue += lowFreq / 3 - 5;
+  fill_rainbow(leds, NUM_LEDS, (gHue), 7);
+}
+void audioConfetti() {
+  fadeToBlackBy(leds, NUM_LEDS, 1+(lowFreq*lowFreq) / 70);
+  int pos = random16(NUM_LEDS);
+  leds[pos] += CHSV(gHue + random8(64), 200, 255);
+}
+void audioConfettiDense() {
+  fadeToBlackBy(leds, NUM_LEDS, 2 + (lowFreq*lowFreq) / 70);
+  int pos = random16(NUM_LEDS);
+  leds[pos] += CHSV(gHue * 2 + random8(64), 200, 255);
+  pos = random16(NUM_LEDS);
+  leds[pos] += CHSV(gHue * 2 + random8(64), 200, 255);
+  pos = random16(NUM_LEDS);
+  leds[pos] += CHSV(gHue * 2 + random8(64), 200, 255);
 }
