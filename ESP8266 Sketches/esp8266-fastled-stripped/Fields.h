@@ -37,7 +37,6 @@ String getPower() {
 void setPower(String value) {
   uint8_t val = value.toInt();
   power = val == 0 ? 0 : 1;
-  broadcastInt("power", power);
 }
 
 String getBrightness() {
@@ -52,8 +51,6 @@ void setBrightness(String val) {
   brightness = value;
 
   FastLED.setBrightness(brightness);
-  
-  broadcastInt("brightness", brightness);
 }
 
 String getPattern() {
@@ -62,6 +59,8 @@ String getPattern() {
 void setPattern(String val) {
   uint8_t value = val.toInt();
   if (value >= patternCount)
+    value = 0;
+  if (value < 0)
     value = patternCount - 1;
   currentPatternIndex = value;
 
@@ -86,7 +85,6 @@ void setPattern(String val) {
       Serial.println("UDP listener started");
     }
   }
-  broadcastInt("pattern", currentPatternIndex);
 }
 void setPatternName(String name) {
   for(uint8_t i = 0; i < patternCount; i++) {
@@ -117,8 +115,6 @@ void setPalette(String val) {
   if (value >= paletteCount)
     value = paletteCount - 1;
   currentPaletteIndex = value;
-  
-  broadcastInt("palette", currentPaletteIndex);
 }
 void setPaletteName(String name) {
   for(uint8_t i = 0; i < paletteCount; i++) {
@@ -149,7 +145,6 @@ void setZone(String val) {
   if (value >= zoneCount)
     value = zoneCount - 1;
   currentZoneIndex = value;
-  broadcastInt("zone", currentZoneIndex);
 }
 
 String getZones() {
@@ -170,7 +165,6 @@ String getAutoplay() {
 void setAutoplay(String val) {
   uint8_t value = val.toInt();
   autoplay = value == 0 ? 0 : 1;
-  broadcastInt("autoplay", autoplay);
 }
 
 String getAutoplayDuration() {
@@ -180,8 +174,6 @@ void setAutoplayDuration(String val) {
   uint8_t value = val.toInt();
   autoplayDuration = value;
   autoPlayTimeout = millis() + (autoplayDuration * 1000);
-
-  broadcastInt("autoplayDuration", autoplayDuration);
 }
 
 String getSolidColor() {

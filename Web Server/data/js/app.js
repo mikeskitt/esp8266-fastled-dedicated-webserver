@@ -1,5 +1,5 @@
 // used when hosting the site somewhere other than the ESP8266 (handy for testing without waiting forever to upload to SPIFFS)
-var espAddresses = ["192.168.1.253", "192.168.1.252", "192.168.1.251", "192.168.1.250", "192.168.1.249", "192.168.1.248", "192.168.1.247", "192.168.1.240"];
+var espAddresses = [/*"192.168.1.253", */"192.168.1.252"]//, "192.168.1.251", "192.168.1.250", "192.168.1.249", "192.168.1.248", "192.168.1.247", "192.168.1.240"];
 var address = espAddresses[0];
 var urlBase = "http://" + address + "/";
 
@@ -504,6 +504,7 @@ function postValue(formId, name, value) {
   $("#status").html("Setting " + name + ": " + value + ", please wait...");
 
   let body = { name: name, value: value };
+  console.log(urlBase + formId + "Value?name=" + name + "&value=" + value)
   //change over to field value, test new in browser. sync to github?
   $.post(urlBase + formId + "Value?name=" + name + "&value=" + value, body, function(data) {
     if (data.name != null) {

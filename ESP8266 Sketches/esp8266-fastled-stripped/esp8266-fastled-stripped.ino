@@ -26,16 +26,16 @@
 #define LED_TYPE      WS2812B
 #define COLOR_ORDER   GRB
 
-//1 living, 2 kitchen, 3 pong, 4 foosball room, 5 party room, 6 stairs, 7 lighthouse, 20 calibration
-//254       253         252    251              249           248       247           240
-#define CURRENT_ROOM 7
+//1 living, 2 kitchen, 3 pong, 4 foosball room, 5 party room, 6 stairs, 7 lighthouse, 20 calibration, 21 dads basement
+//254       253         252    251              249           248       247           240             253
+#define CURRENT_ROOM 20
 
 #include <FastLED.h>
 #define DATA_PIN      2
 #include <vector>
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
-//#include <ESP8266WiFiMulti.h>
+#include <ESP8266WiFiMulti.h>
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
 #include <ArduinoJson.h>  //v6.8 beta works
@@ -47,7 +47,7 @@
 
 ESP8266WebServer webServer(80);
 WebSocketsServer webSocketsServer = WebSocketsServer(81);
-//ESP8266WiFiMulti wifiMulti; //!going to regular wifi so it actually connects every time. wifiMulti BUG?
+ESP8266WiFiMulti wifiMulti; //!going to regular wifi so it actually connects every time. wifiMulti BUG?
 WiFiUDP Udp;
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE];  // buffer to hold incoming udp packet,
 
@@ -187,16 +187,16 @@ void setup() {
 
   //https://github.com/FastLED/FastLED/issues/367
   WiFi.setSleepMode(WIFI_NONE_SLEEP);
-  Serial.printf("Connecting to %s\n", wifiAPs[0].name);
+  //Serial.printf("Connecting to %s\n", wifiAPs[1].name);
 
   int count = 2;
-  /*for (int i = 0; i < apCount; i++) {
+  for (int i = 0; i < apCount; i++) {
     wifiMulti.addAP(wifiAPs[i].name, wifiAPs[i].password);
   }
-  while (wifiMulti.run() != WL_CONNECTED) {*/
-  WiFi.disconnect();
-  WiFi.begin(wifiAPs[0].name, wifiAPs[0].password);
-  while(WiFi.status() != WL_CONNECTED) {
+  while (wifiMulti.run() != WL_CONNECTED) {
+  /*WiFi.disconnect();
+  WiFi.begin(wifiAPs[1].name, wifiAPs[1].password);
+  while(WiFi.status() != WL_CONNECTED) {*/
     Serial.print(".");
     for (int i = 0; i < 5;i++) {
       count++;
@@ -208,10 +208,11 @@ void setup() {
       delay(100);
     }
   }
-
-  Serial.print("Connected! Open http://");
-  Serial.print(WiFi.localIP());
-  Serial.println(" in your browser");
+  Serial.println();
+  Serial.print("Connected to ");
+  Serial.print(WiFi.SSID());
+  Serial.print(", ip ");
+  Serial.println(WiFi.localIP());
 
   webServer.on("/all", HTTP_GET, []() {
     String json = getFieldsJson(fields, fieldCount);
@@ -270,7 +271,7 @@ void setup() {
   Serial.println("Web socket server started");
   
   Udp.beginMulticast(WiFi.localIP(), multicastIpAddr, multicastPort);
-  Serial.printf("Now listening to mutlicast IP %s UDP port %d\n", multicastIpAddr.toString().c_str(), multicastPort);
+  Serial.printf("Listening to multicast IP %s UDP port %d\n for music", multicastIpAddr.toString().c_str(), multicastPort);
   Udp.stop();
 
   autoPlayTimeout = millis() + (autoplayDuration * 1000);
@@ -342,10 +343,10 @@ void loop() {
     FastLED.show();
     return;
   }
-  EVERY_N_SECONDS(2) {
+  /*EVERY_N_SECONDS(2) {
      Serial.print( F("Heap: ") );
      Serial.println(system_get_free_heap_size());
-  }
+  }*/
   // change to a new cpt-city gradient palette
   EVERY_N_SECONDS( secondsPerPalette ) {
     gCurrentPaletteNumber = addmod8( gCurrentPaletteNumber, 1, gGradientPaletteCount);
@@ -424,18 +425,14 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
 
 //helpers
 void adjustPattern(bool up) {
-  if (up)
-    currentPatternIndex++;
-  else
-    currentPatternIndex--;
+  if (up) {
+    setPattern(String(++currentPatternIndex));
+  }
+  else {
+    setPattern(String(--currentPatternIndex));
+  }
 
-  // wrap around at the ends
-  if (currentPatternIndex < 0)
-    currentPatternIndex = patternCount - 1;
-  if (currentPatternIndex >= patternCount)
-    currentPatternIndex = 0;
-    
-  broadcastInt("pattern", currentPatternIndex);
+  broadcastString("pattern", String(currentPatternIndex));
 }
 void constrainDouble(double &value, int lowerBound, int upperBound) {
   if (value > upperBound) {
@@ -675,7 +672,14 @@ void colorwaves( CRGB* ledarray, uint16_t numleds, CRGBPalette16& palette) {// C
 //audio anims
 
 void audioSolidColor() {
-  fill_solid(leds, NUM_LEDS, CRGB(lowFreq, 0, 0));
+  CRGB newColor = solidColor;
+  //Serial.println(newColor.r);
+  //Serial.println(lowFreq);
+  newColor.r *= (lowFreq / 255.0);
+  newColor.g *= (lowFreq / 255.0);
+  newColor.b *= (lowFreq / 255.0);
+  //Serial.println(newColor.r);
+  fill_solid(leds, NUM_LEDS, newColor);
 }
 
 void audioRainbowEdge() {

@@ -63,12 +63,19 @@
   #define NUM_LEDS      198
   #define MILLI_AMPS    20000
 #elif CURRENT_ROOM == 20 //calibration
+  IPAddress ip(192, 168, 1, 252);
+  ZoneList zones = {
+    {0, 2, "Not Used"}
+  };
+  #define NUM_LEDS      150
+  #define MILLI_AMPS    20000
+#elif CURRENT_ROOM == 21 //dad's basement
   IPAddress ip(192, 168, 1, 240);
   ZoneList zones = {
     {0, 2, "Left"},
     {3, 10, "Middle"},
     {11, 20, "Right"}
   };
-  #define NUM_LEDS      100
-  #define MILLI_AMPS    20000
+  #define NUM_LEDS      278
+  #define MILLI_AMPS    26000
 #endif
