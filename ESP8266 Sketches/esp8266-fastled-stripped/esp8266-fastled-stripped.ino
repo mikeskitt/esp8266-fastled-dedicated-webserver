@@ -190,9 +190,13 @@ void setup() {
   //Serial.printf("Connecting to %s\n", wifiAPs[1].name);
 
   int count = 2;
+  Serial.print("Current AP List: ");
   for (int i = 0; i < apCount; i++) {
     wifiMulti.addAP(wifiAPs[i].name, wifiAPs[i].password);
+    Serial.print(wifiAPs[i].name);
+    Serial.print(" ");
   }
+  Serial.println();
   while (wifiMulti.run() != WL_CONNECTED) {
   /*WiFi.disconnect();
   WiFi.begin(wifiAPs[1].name, wifiAPs[1].password);

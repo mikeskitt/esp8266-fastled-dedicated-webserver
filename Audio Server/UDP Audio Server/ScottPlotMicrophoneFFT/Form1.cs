@@ -8,6 +8,7 @@ using NAudio.Wave;
 using System.Timers;
 using System.Text;
 using Newtonsoft.Json;
+using ScottPlotMicrophoneFFT;
 
 namespace ScottPlotMicrophoneFFT
 {
@@ -61,28 +62,31 @@ namespace ScottPlotMicrophoneFFT
 
         public void sendUdpData(object source, ElapsedEventArgs e)
 		{
-			UdpClient udpclient = new UdpClient();
-			IPAddress multicastaddress = IPAddress.Parse(multicastIP);
-            IPEndPoint remoteEndPoint = new IPEndPoint(multicastaddress, multicastPort);
-            Random rnd = new Random();
-            int num = rnd.Next();
-			//audio packet
-			AudioPacket audio = new AudioPacket();
-			//BUFFERSIZE / BYTES_PER_POINT / 2;
-			/*audio.low80hz = Math.Round(Enumerable.Range(0, fftReal.Length / 80).Select(i => fftReal[i]).Average(), 4) * 1;
-			audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 80, fftReal.Length / 4).Select(i => fftReal[i]).Average(), 4) * 2;
-			audio.high = Math.Round(Enumerable.Range(fftReal.Length / 4, 3 * (fftReal.Length / 4)).Select(i => fftReal[i]).Average(), 4) * 4;
-			string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
-			udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);*/
-			audio.low40hz = Math.Round(fftReal[1] * 2 * 10, 4);
-			audio.low80hz = Math.Round(fftReal[2] * 2 * 10, 4);
-			audio.low120hz = Math.Round(fftReal[3] * 2 * 10, 4);
-			audio.low160hz = Math.Round(fftReal[4] * 2 * 10, 4);
-			audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 40).Select(i => fftReal[i]).Average(), 4) * 6 * 8;
-			audio.high = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 6).Select(i => fftReal[i]).Average(), 4) * 0 * 8;
-			string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
-			udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
-			udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+            if (fftReal != null)
+            {
+                UdpClient udpclient = new UdpClient();
+                IPAddress multicastaddress = IPAddress.Parse(multicastIP);
+                IPEndPoint remoteEndPoint = new IPEndPoint(multicastaddress, multicastPort);
+                Random rnd = new Random();
+                int num = rnd.Next();
+                //audio packet
+                AudioPacket audioPacket = new AudioPacket();
+                //BUFFERSIZE / BYTES_PER_POINT / 2;
+                /*audio.low80hz = Math.Round(Enumerable.Range(0, fftReal.Length / 80).Select(i => fftReal[i]).Average(), 4) * 1;
+                audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 80, fftReal.Length / 4).Select(i => fftReal[i]).Average(), 4) * 2;
+                audio.high = Math.Round(Enumerable.Range(fftReal.Length / 4, 3 * (fftReal.Length / 4)).Select(i => fftReal[i]).Average(), 4) * 4;
+                string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
+                udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);*/
+                audioPacket.low40hz = Math.Round(fftReal[1] * 2 * 10, 4);
+                audioPacket.low80hz = Math.Round(fftReal[2] * 2 * 10, 4);
+                audioPacket.low120hz = Math.Round(fftReal[3] * 2 * 10, 4);
+                audioPacket.low160hz = Math.Round(fftReal[4] * 2 * 10, 4);
+                audioPacket.mid = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 40).Select(i => fftReal[i]).Average(), 4) * 6 * 8;
+                audioPacket.high = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 6).Select(i => fftReal[i]).Average(), 4) * 0 * 8;
+                string jsonAudio = JsonConvert.SerializeObject(audioPacket, Formatting.None);
+                udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
+                udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+            }
         }
 
         public void SetupGraphLabels()

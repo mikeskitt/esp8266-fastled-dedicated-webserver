@@ -15,14 +15,14 @@
       <requestedPrivileges xmlns="urn:schemas-microsoft-com:asm.v3">
         <!--
           UAC Manifest Options
-          If you want to change the Windows User Account Control level replace the 
+          If you want to change the Windows User Account Control level replace the
           requestedExecutionLevel node with one of the following.
 
         <requestedExecutionLevel  level="asInvoker" uiAccess="false" />
         <requestedExecutionLevel  level="requireAdministrator" uiAccess="false" />
         <requestedExecutionLevel  level="highestAvailable" uiAccess="false" />
 
-         If you want to utilize File and Registry Virtualization for backward 
+         If you want to utilize File and Registry Virtualization for backward
          compatibility then delete the requestedExecutionLevel node.
     -->
         <requestedExecutionLevel level="asInvoker" uiAccess="false" />
@@ -90,26 +90,26 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="NAudio.dll" size="479232">
-      <assemblyIdentity name="NAudio" version="1.8.4.0" language="neutral" processorArchitecture="msil" />
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="NAudio.dll" size="509952">
+      <assemblyIdentity name="NAudio" version="1.9.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>r+MeJQkHpvb7jWrr15xXbvTXOtYbxAPeKcq49GId4dI=</dsig:DigestValue>
+        <dsig:DigestValue>OtXQm0yMMUbRWVWlZKnxpX18eVsYmiXG9yKnONle+Jw=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="Newtonsoft.Json.dll" size="675240">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="Newtonsoft.Json.dll" size="675752">
       <assemblyIdentity name="Newtonsoft.Json" version="12.0.0.0" publicKeyToken="30AD4FE6B2A6AEED" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>tmdJuB4UifzY11SyrTnr4NtoE0TjkqP0nckjVkO9vQY=</dsig:DigestValue>
+        <dsig:DigestValue>NZjMytW1Nf6m+TZiEHpBg7/WFnvx0PgCYENgk+3C468=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
@@ -121,38 +121,38 @@
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>s5nrgBdhaaR1i6eJzOTO9W3EbKjNNtGyE2AqMbM4w98=</dsig:DigestValue>
+        <dsig:DigestValue>0RwsUmj0xbeViFUzYtH5/Q5LEcsYuXyfQp1VXa8S2L8=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ScottPlotMicrophoneFFT.exe" size="17888">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="ScottPlotMicrophoneFFT.exe" size="16896">
       <assemblyIdentity name="ScottPlotMicrophoneFFT" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>km2OSjz40OGmTlUUqO3mlzv1qAqf0179tPvj46DuhWk=</dsig:DigestValue>
+        <dsig:DigestValue>RgqiBZEBmmMOCpvHutXtfIbUEawFa9wbQhR8uD0lZtg=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
-  <file name="Accord.dll.config" size="213">
+  <file name="Accord.dll.config" size="220">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>MEnoP5t/qShagvs8d0DpwiW2ajH4BdNYKpv9NLXdjm4=</dsig:DigestValue>
+      <dsig:DigestValue>rXk1gk79Wcezlt/jAmK/WsVZR0elUxDKDqpL2eQSvj4=</dsig:DigestValue>
     </hash>
   </file>
-  <file name="ScottPlotMicrophoneFFT.exe.config" size="184">
+  <file name="ScottPlotMicrophoneFFT.exe.config" size="186">
     <hash>
       <dsig:Transforms>
         <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
       </dsig:Transforms>
       <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-      <dsig:DigestValue>gXPU0Xy3KObyxeLOgSTOfrD0WdxiCFvKq3hqvx9rN6c=</dsig:DigestValue>
+      <dsig:DigestValue>eSEJjkfolEEv39DK/g+IzGhJd0CZjqwXxowAEpBp2AM=</dsig:DigestValue>
     </hash>
   </file>
 </asmv1:assembly>

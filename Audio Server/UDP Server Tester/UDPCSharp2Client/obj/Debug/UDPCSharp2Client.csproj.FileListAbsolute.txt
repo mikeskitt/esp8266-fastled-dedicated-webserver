@@ -11,3 +11,10 @@ C:\Users\tiuip\Documents\esp8266-fastled-webserver\esp8266-fastled-webserver\Aud
 C:\Users\tiuip\Documents\esp8266-fastled-webserver\esp8266-fastled-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.csproj.CoreCompileInputs.cache
 C:\Users\tiuip\Documents\esp8266-fastled-webserver\esp8266-fastled-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.exe
 C:\Users\tiuip\Documents\esp8266-fastled-webserver\esp8266-fastled-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.pdb
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.exe.config
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.exe
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\bin\Debug\UDPCSharp2Client.pdb
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.csprojAssemblyReference.cache
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.csproj.CoreCompileInputs.cache
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.exe
+C:\Users\tiuip\Documents\esp8266-fastled-dedicated-webserver\Audio Server\UDP Server Tester\UDPCSharp2Client\obj\Debug\UDPCSharp2Client.pdb
