@@ -19,13 +19,22 @@ namespace ScottPlotMicrophoneFFT
         private int RATE = 40960; // sample rate of the sound card, for 40 hz increments, use 40960
         private int BUFFERSIZE = (int)Math.Pow(2, 11); // must be a multiple of 2 for 40 hz increments, use 2^11
 		private byte[] udpBuffer = null;
-        private string multicastIP = "239.0.0.222";
-        private int multicastPort = 2222;
-        private int udpBroadcastRate = 30;
+        private static string multicastIP = "239.0.0.222";//2";
+        private static int multicastPort = 2222;
+        private static int udpBroadcastRate = 30;
+        private static int udpStandbyThreshold = 200;
 		private int frameCounter = 0;
+        private int packetCounter = 0;
+        private int silenceCounter = 0;
+        private double MAX_GRAPH1 = 0;
+        private double MAX_GRAPH2 = 0;
 		double[] fftReal;
 
-		public static void DisplayTimeEvent(object source, ElapsedEventArgs e)
+        UdpClient udpclient = new UdpClient();
+        private static IPAddress multicastaddress = IPAddress.Parse(multicastIP);
+        private static IPEndPoint remoteEndPoint = new IPEndPoint(multicastaddress, multicastPort);
+
+        public static void DisplayTimeEvent(object source, ElapsedEventArgs e)
         {
             // code here will run every second
         }
@@ -53,7 +62,6 @@ namespace ScottPlotMicrophoneFFT
 
         public void SetupUDPServer()
         {
-            lblStatus.Text = $"UDP multicast server started on {multicastIP}, port {multicastPort}";
             System.Timers.Timer udpTimer = new System.Timers.Timer();
             udpTimer.Elapsed += new ElapsedEventHandler(sendUdpData);
             udpTimer.Interval = udpBroadcastRate;
@@ -64,42 +72,62 @@ namespace ScottPlotMicrophoneFFT
 		{
             if (fftReal != null)
             {
-                UdpClient udpclient = new UdpClient();
-                IPAddress multicastaddress = IPAddress.Parse(multicastIP);
-                IPEndPoint remoteEndPoint = new IPEndPoint(multicastaddress, multicastPort);
-                Random rnd = new Random();
-                int num = rnd.Next();
                 //audio packet
-                AudioPacket audioPacket = new AudioPacket();
-                //BUFFERSIZE / BYTES_PER_POINT / 2;
-                /*audio.low80hz = Math.Round(Enumerable.Range(0, fftReal.Length / 80).Select(i => fftReal[i]).Average(), 4) * 1;
-                audio.mid = Math.Round(Enumerable.Range(fftReal.Length / 80, fftReal.Length / 4).Select(i => fftReal[i]).Average(), 4) * 2;
-                audio.high = Math.Round(Enumerable.Range(fftReal.Length / 4, 3 * (fftReal.Length / 4)).Select(i => fftReal[i]).Average(), 4) * 4;
-                string jsonAudio = JsonConvert.SerializeObject(audio, Formatting.None);
-                udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);*/
-                audioPacket.low40hz = Math.Round(fftReal[1] * 2 * 10, 4);
-                audioPacket.low80hz = Math.Round(fftReal[2] * 2 * 10, 4);
-                audioPacket.low120hz = Math.Round(fftReal[3] * 2 * 10, 4);
-                audioPacket.low160hz = Math.Round(fftReal[4] * 2 * 10, 4);
-                audioPacket.mid = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 40).Select(i => fftReal[i]).Average(), 4) * 6 * 8;
-                audioPacket.high = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 6).Select(i => fftReal[i]).Average(), 4) * 0 * 8;
-                string jsonAudio = JsonConvert.SerializeObject(audioPacket, Formatting.None);
-                udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
-                udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+                if (fftReal.Max() > 0.15)
+                {
+                    silenceCounter = 0;
+
+                    AudioPacket audioPacket = new AudioPacket();
+                    audioPacket.low40hz = Math.Round(fftReal[1] * 2 * 10, 4);
+                    audioPacket.low80hz = Math.Round(fftReal[2] * 2 * 10, 4);
+                    audioPacket.low120hz = Math.Round(fftReal[3] * 2 * 10, 4);
+                    audioPacket.low160hz = Math.Round(fftReal[4] * 2 * 10, 4);
+                    audioPacket.mid = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 40).Select(i => fftReal[i]).Average(), 4) * 6 * 8;
+                    audioPacket.high = Math.Round(Enumerable.Range(fftReal.Length / 2, fftReal.Length / 6).Select(i => fftReal[i]).Average(), 4) * 0 * 8;
+
+                    string jsonAudio = JsonConvert.SerializeObject(audioPacket, Formatting.None);
+                    udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
+                    udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+                    packetCounter++;
+                }
+                else
+                {
+                    if (silenceCounter < udpStandbyThreshold)
+                    {
+                        AudioPacket audioPacket = new AudioPacket();
+
+                        string jsonAudio = JsonConvert.SerializeObject(audioPacket, Formatting.None);
+                        udpBuffer = Encoding.UTF8.GetBytes(jsonAudio);
+                        udpclient.Send(udpBuffer, udpBuffer.Length, remoteEndPoint);
+                        packetCounter++;
+                        silenceCounter++;
+                    }
+                }
             }
         }
 
         public void SetupGraphLabels()
         {
-            scottPlotUC1.fig.labelTitle = "Microphone PCM Data";
-            scottPlotUC1.fig.labelY = "Amplitude (PCM)";
-            scottPlotUC1.fig.labelX = "Time (ms)";
-            scottPlotUC1.Redraw();
+            Color figureBgColor = ColorTranslator.FromHtml("#001021");
+            Color dataBgColor = ColorTranslator.FromHtml("#021d38");
+            scottPlotUC1.plt.Style(figBg: figureBgColor, dataBg: dataBgColor);
+            scottPlotUC1.plt.Grid(color: ColorTranslator.FromHtml("#273c51"));
+            scottPlotUC1.plt.Ticks(color: Color.LightGray);
+            scottPlotUC1.plt.Title("Microphone PCM Data", Color.White);
+            scottPlotUC1.plt.XLabel("Time (ms)", Color.LightGray);
+            scottPlotUC1.plt.YLabel("Amplitude (PCM)", Color.LightGray);
+            //scottPlotUC1.plt.Title("Microphone PCM Data");
+            //scottPlotUC1.plt.YLabel("Amplitude (PCM)");
+           // scottPlotUC1.plt.XLabel("Time (ms)");
+            scottPlotUC1.Render();
+            scottPlotUC2.plt.Style(figBg: figureBgColor, dataBg: dataBgColor);
+            scottPlotUC2.plt.Grid(color: ColorTranslator.FromHtml("#273c51"));
+            scottPlotUC2.plt.Ticks(color: Color.LightGray);
 
-            scottPlotUC2.fig.labelTitle = "Microphone FFT Data";
-            scottPlotUC2.fig.labelY = "Power (raw)";
-            scottPlotUC2.fig.labelX = "Frequency (Hz)";
-            scottPlotUC2.Redraw();
+            scottPlotUC2.plt.Title("Microphone FFT Data", Color.White);
+            scottPlotUC2.plt.YLabel("Power (raw)", Color.LightGray);
+            scottPlotUC2.plt.XLabel("Frequency (Hz)", Color.LightGray);
+            scottPlotUC2.Render();
         }
 
         public void StartListeningToMicrophone(int audioDeviceNumber = 0)
@@ -131,14 +159,27 @@ namespace ScottPlotMicrophoneFFT
             timerReplot.Enabled = false;
             PlotLatestData();
 			++frameCounter;
-			lblStatus.Text = $"Frame counter: {numberOfDraws}";
-
-			timerReplot.Enabled = true;
+			lblAudioFrames.Text = $"Audio Frames: {numberOfDraws}";
+            lblUdpPackets.Text = $"Packets Sent: {packetCounter}";
+            if (silenceCounter >= udpStandbyThreshold)
+            {
+                lblStatus.Text = "Standby";
+            }
+            else if (silenceCounter > 10)
+            {
+                lblStatus.Text = $"Entering Standby: {Math.Ceiling((double)((udpStandbyThreshold - silenceCounter) / udpBroadcastRate))}";
+            }
+            else
+            {
+                lblStatus.Text = "Broadcasting Music Data";
+            }
+            timerReplot.Enabled = true;
         }
 
         public int numberOfDraws = 0;
-        public bool needsAutoScaling = true;
-		public void PlotLatestData()
+        public bool needsAutoScalingGraph1 = true;
+        public bool needsAutoScalingGraph2 = true;
+        public void PlotLatestData()
 		{
 			// check the incoming microphone audio
 			int frameSize = BUFFERSIZE;
@@ -160,7 +201,8 @@ namespace ScottPlotMicrophoneFFT
 			// create double arrays to hold the data we will graph
 			double[] pcm = new double[graphPointCount];
 			double[] fft = new double[graphPointCount];
-			fftReal = new double[graphPointCount / 2];
+            double[] fftPlot = new double[graphPointCount / 2];
+            fftReal = new double[graphPointCount / 2];
 
 			// populate Xs and Ys with double data
 			for (int i = 0; i < graphPointCount; i++)
@@ -182,27 +224,56 @@ namespace ScottPlotMicrophoneFFT
 
 			// just keep the real half (the other half imaginary)
 			Array.Copy(fft, fftReal, fftReal.Length);
+            Array.Copy(fft, fftPlot, fftPlot.Length);
+            for (int i = 0; i < fftPlot.Length; i++)
+            {
+                fftPlot[i] = fftReal[i] * (i + 50) / 4;
+            }
+            if (pcm.Max() > MAX_GRAPH1)
+            {
+                needsAutoScalingGraph1 = true;
+                MAX_GRAPH1 = pcm.Max();
+            }
+            if (fftPlot.Max() > MAX_GRAPH2)
+            {
+                needsAutoScalingGraph2 = true;
+                MAX_GRAPH2 = fftPlot.Max();
+            }
+            // plot the Xs and Ys for both graphs
+            if (numberOfDraws % 3 == 0)
+            {
 
-			// plot the Xs and Ys for both graphs
-			if (numberOfDraws % 5 == 0) { 
-				scottPlotUC1.Clear();
-				scottPlotUC1.PlotSignal(pcm, pcmPointSpacingMs, Color.Blue);
-				scottPlotUC2.Clear();
-				scottPlotUC2.PlotSignal(fftReal, fftPointSpacingHz, Color.Blue);
+                scottPlotUC1.plt.Clear();
+				scottPlotUC1.plt.PlotSignal(pcm, pcmPointSpacingMs, color: System.Drawing.Color.Red, markerSize: 1);
+				scottPlotUC2.plt.Clear();
+				scottPlotUC2.plt.PlotSignal(fftPlot, fftPointSpacingHz, color: System.Drawing.Color.DeepSkyBlue, markerSize: 1);
+                scottPlotUC1.Render();
+                scottPlotUC2.Render();
 			}
 
             // optionally adjust the scale to automatically fit the data
-            if (needsAutoScaling)
+            if (needsAutoScalingGraph1)
             {
-                scottPlotUC1.AxisAuto();
-                scottPlotUC2.AxisAuto();
-                //scottPlotUC1.AxisManual(0, 1, -1, 1);
-                //scottPlotUC2.AxisManual(0, .35, 0, 1);
-                needsAutoScaling = false;
+                scottPlotUC1.plt.Clear();
+                scottPlotUC1.plt.PlotSignal(pcm, pcmPointSpacingMs, color: System.Drawing.Color.Red, markerSize: 1);
+                scottPlotUC1.Render();
+                scottPlotUC1.plt.AxisAuto(0, 0);
+                needsAutoScalingGraph1 = false;
+            }
+
+            // optionally adjust the scale to automatically fit the data
+            if (needsAutoScalingGraph2)
+            {
+                scottPlotUC2.plt.Clear();
+                scottPlotUC2.plt.PlotSignal(fftPlot, fftPointSpacingHz, color: System.Drawing.Color.DeepSkyBlue, markerSize: 1);
+                scottPlotUC2.Render();
+                scottPlotUC2.plt.AxisAuto(0.01, 0.1);
+                //scottPlotUC2.plt.Axis(0, 24, -.05 * (MAX_GRAPH2 / 2), (MAX_GRAPH2 / 2));
+                needsAutoScalingGraph2 = false;
             }
 
             //scottPlotUC1.PlotSignal(Ys, RATE);
-			
+
             numberOfDraws += 1;
 
             // this reduces flicker and helps keep the program responsive
@@ -212,7 +283,10 @@ namespace ScottPlotMicrophoneFFT
 
         private void autoScaleToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            needsAutoScaling = true;
+            needsAutoScalingGraph1 = true;
+            needsAutoScalingGraph2 = true;
+            MAX_GRAPH1 = 0;
+            MAX_GRAPH2 = 0;
         }
 
         private void infoMessageToolStripMenuItem_Click(object sender, EventArgs e)
@@ -243,6 +317,26 @@ namespace ScottPlotMicrophoneFFT
         }
 
         private void toolStripStatusLabel1_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ScottPlotUC1_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ScottPlotUC2_Load(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ScottPlotUC1_Load_1(object sender, EventArgs e)
+        {
+
+        }
+
+        private void ToolStripStatusLabel1_Click_1(object sender, EventArgs e)
         {
 
         }
