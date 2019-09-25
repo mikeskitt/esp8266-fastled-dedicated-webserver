@@ -1,3 +1,3 @@
 //#ifndef STASSID
-#define STASSID "TP-LINK_C9701C"
-#define STAPSK  "6c4a61bbbd"
+#define STASSID "99999999999"
+#define STAPSK  "888888888"
